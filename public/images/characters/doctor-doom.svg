@@ -1,0 +1,137 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 400 400" width="100%" height="100%">
+  <defs>
+    <!-- Background Radial Glow -->
+    <radialGradient id="doom-bg-glow" cx="50%" cy="50%" r="50%">
+      <stop offset="0%" stop-color="#10b981" stop-opacity="0.35"/>
+      <stop offset="60%" stop-color="#047857" stop-opacity="0.15"/>
+      <stop offset="100%" stop-color="#06110b" stop-opacity="0"/>
+    </radialGradient>
+
+    <!-- Hood Deep Green Gradient -->
+    <linearGradient id="hood-grad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#064e3b"/>
+      <stop offset="35%" stop-color="#047857"/>
+      <stop offset="70%" stop-color="#022c22"/>
+      <stop offset="100%" stop-color="#011812"/>
+    </linearGradient>
+
+    <!-- Hood Outer Shadow -->
+    <linearGradient id="hood-shadow" x1="0%" y1="0%" x2="0%" y2="100%">
+      <stop offset="0%" stop-color="#022c22" stop-opacity="0.95"/>
+      <stop offset="100%" stop-color="#000000" stop-opacity="0.95"/>
+    </linearGradient>
+
+    <!-- Titanium Metal Mask Gradient -->
+    <linearGradient id="metal-base" x1="20%" y1="0%" x2="80%" y2="100%">
+      <stop offset="0%" stop-color="#e2e8f0"/>
+      <stop offset="25%" stop-color="#94a3b8"/>
+      <stop offset="50%" stop-color="#475569"/>
+      <stop offset="75%" stop-color="#64748b"/>
+      <stop offset="100%" stop-color="#1e293b"/>
+    </linearGradient>
+
+    <linearGradient id="metal-highlight" x1="0%" y1="0%" x2="100%" y2="0%">
+      <stop offset="0%" stop-color="#ffffff" stop-opacity="0.6"/>
+      <stop offset="50%" stop-color="#94a3b8" stop-opacity="0.2"/>
+      <stop offset="100%" stop-color="#334155" stop-opacity="0.8"/>
+    </linearGradient>
+
+    <!-- Emerald Eye Energy Glow -->
+    <filter id="eye-glow" x="-50%" y="-50%" width="200%" height="200%">
+      <feGaussianBlur stdDeviation="6" result="blur1"/>
+      <feGaussianBlur stdDeviation="14" result="blur2"/>
+      <feMerge>
+        <feMergeNode in="blur2"/>
+        <feMergeNode in="blur1"/>
+        <feMergeNode in="SourceGraphic"/>
+      </feMerge>
+    </filter>
+
+    <!-- Gold Clasp Gradient -->
+    <linearGradient id="gold-clasp" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#fef08a"/>
+      <stop offset="40%" stop-color="#eab308"/>
+      <stop offset="75%" stop-color="#ca8a04"/>
+      <stop offset="100%" stop-color="#854d0e"/>
+    </linearGradient>
+  </defs>
+
+  <!-- Ambient Latverian Aura -->
+  <circle cx="200" cy="200" r="190" fill="url(#doom-bg-glow)"/>
+
+  <!-- Hood Outer Silhouette -->
+  <path d="M 90 380 C 70 320, 60 210, 100 130 C 130 70, 170 40, 200 35 C 230 40, 270 70, 300 130 C 340 210, 330 320, 310 380 C 260 395, 140 395, 90 380 Z" fill="url(#hood-grad)" stroke="#10b981" stroke-width="1.5" stroke-opacity="0.4"/>
+
+  <!-- Hood Inner Shadow Cave -->
+  <path d="M 120 360 C 105 280, 105 180, 140 120 C 165 80, 235 80, 260 120 C 295 180, 295 280, 280 360 C 240 370, 160 370, 120 360 Z" fill="url(#hood-shadow)"/>
+
+  <!-- Titanium Forehead Plate -->
+  <path d="M 148 135 C 175 125, 225 125, 252 135 L 255 175 C 235 185, 165 185, 145 175 Z" fill="url(#metal-base)" stroke="#334155" stroke-width="2"/>
+  <path d="M 148 135 C 175 125, 225 125, 252 135" fill="none" stroke="url(#metal-highlight)" stroke-width="3"/>
+
+  <!-- Rivets on Forehead -->
+  <circle cx="158" cy="142" r="2.5" fill="#e2e8f0"/>
+  <circle cx="200" cy="137" r="2.5" fill="#e2e8f0"/>
+  <circle cx="242" cy="142" r="2.5" fill="#e2e8f0"/>
+
+  <!-- Brow Ridge / Eye Brow Plate -->
+  <path d="M 138 170 L 195 188 L 200 185 L 205 188 L 262 170 L 258 190 L 200 205 L 142 190 Z" fill="#334155" stroke="#1e293b" stroke-width="2"/>
+  <path d="M 142 172 L 195 189" stroke="#cbd5e1" stroke-width="2" fill="none"/>
+  <path d="M 258 172 L 205 189" stroke="#94a3b8" stroke-width="2" fill="none"/>
+
+  <!-- Eye Sockets (Darkened) -->
+  <!-- Left Eye Cutout -->
+  <polygon points="152,192 188,200 184,212 154,204" fill="#020604"/>
+  <!-- Right Eye Cutout -->
+  <polygon points="248,192 212,200 216,212 246,204" fill="#020604"/>
+
+  <!-- Glowing Emerald Slits (Victor's Eyes) -->
+  <polygon points="156,196 184,202 181,209 157,203" fill="#10b981" filter="url(#eye-glow)"/>
+  <polygon points="160,198 180,202 178,206 161,202" fill="#a7f3d0"/>
+
+  <polygon points="244,196 216,202 219,209 243,203" fill="#10b981" filter="url(#eye-glow)"/>
+  <polygon points="240,198 220,202 222,206 239,202" fill="#a7f3d0"/>
+
+  <!-- Nose Bridge & Cheekbones -->
+  <path d="M 194 195 L 190 250 L 200 258 L 210 250 L 206 195 Z" fill="url(#metal-base)" stroke="#1e293b" stroke-width="1.5"/>
+
+  <!-- Left Cheek Guard -->
+  <path d="M 145 198 L 190 248 L 185 295 L 140 250 Z" fill="url(#metal-base)" stroke="#334155" stroke-width="2"/>
+  <!-- Right Cheek Guard -->
+  <path d="M 255 198 L 210 248 L 215 295 L 260 250 Z" fill="url(#metal-base)" stroke="#1e293b" stroke-width="2"/>
+
+  <!-- Metallic Mouth Grille / Respirator -->
+  <path d="M 175 265 L 225 265 L 220 315 L 200 322 L 180 315 Z" fill="#1e293b" stroke="#475569" stroke-width="2"/>
+
+  <!-- Grille Vertical Vents -->
+  <line x1="185" y1="272" x2="185" y2="308" stroke="#10b981" stroke-width="2.5" opacity="0.85" filter="url(#eye-glow)"/>
+  <line x1="192" y1="270" x2="192" y2="313" stroke="#10b981" stroke-width="2.5" opacity="0.85" filter="url(#eye-glow)"/>
+  <line x1="200" y1="268" x2="200" y2="317" stroke="#34d399" stroke-width="3" filter="url(#eye-glow)"/>
+  <line x1="208" y1="270" x2="208" y2="313" stroke="#10b981" stroke-width="2.5" opacity="0.85" filter="url(#eye-glow)"/>
+  <line x1="215" y1="272" x2="215" y2="308" stroke="#10b981" stroke-width="2.5" opacity="0.85" filter="url(#eye-glow)"/>
+
+  <!-- Jaw Line & Chin -->
+  <path d="M 160 270 L 180 325 L 200 335 L 220 325 L 240 270 L 225 320 L 200 330 L 175 320 Z" fill="url(#metal-base)" stroke="#334155" stroke-width="2"/>
+
+  <!-- Hood Fabric Folds & Collar -->
+  <path d="M 80 380 C 130 330, 160 340, 200 350 C 240 340, 270 330, 320 380 Z" fill="#047857" opacity="0.9"/>
+  <path d="M 100 385 C 150 355, 175 365, 200 370 C 225 365, 250 355, 300 385 Z" fill="#064e3b"/>
+
+  <!-- Latverian Royal Gold Clasps -->
+  <!-- Left Clasp -->
+  <circle cx="125" cy="345" r="14" fill="url(#gold-clasp)" stroke="#78350f" stroke-width="2"/>
+  <circle cx="125" cy="345" r="8" fill="none" stroke="#fef08a" stroke-width="1.5"/>
+  <circle cx="125" cy="345" r="3" fill="#10b981"/>
+
+  <!-- Right Clasp -->
+  <circle cx="275" cy="345" r="14" fill="url(#gold-clasp)" stroke="#78350f" stroke-width="2"/>
+  <circle cx="275" cy="345" r="8" fill="none" stroke="#fef08a" stroke-width="1.5"/>
+  <circle cx="275" cy="345" r="3" fill="#10b981"/>
+
+  <!-- Golden Chain connecting clasps -->
+  <path d="M 139 347 C 170 365, 230 365, 261 347" fill="none" stroke="url(#gold-clasp)" stroke-width="4" stroke-dasharray="6,3"/>
+
+  <!-- Glowing Mystic Halo Rim -->
+  <circle cx="200" cy="200" r="185" fill="none" stroke="#10b981" stroke-width="2" stroke-dasharray="12 8" opacity="0.6"/>
+  <circle cx="200" cy="200" r="192" fill="none" stroke="#34d399" stroke-width="1" opacity="0.3"/>
+</svg>

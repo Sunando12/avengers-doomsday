@@ -1,0 +1,693 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="doomsday">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Avengers: Doomsday — Mission Command Center</title>
+  <meta name="description" content="The ultimate Avengers Doomsday mission command center. Track heroes, manage missions, monitor threat levels, and sync your schedule with Google Calendar." />
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@400;500;600;700;800;900&family=Inter:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet" />
+  <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🛡️</text></svg>" />
+  <!-- Google Identity Services SDK -->
+  <script src="https://accounts.google.com/gsi/client" async defer></script>
+  <script src="https://apis.google.com/js/api.js" async defer></script>
+</head>
+<body>
+  <!-- Particle Canvas Background -->
+  <canvas id="particle-canvas"></canvas>
+
+  <!-- Accessibility: Pause Motion Button -->
+  <button id="toggle-motion" class="motion-toggle" title="Toggle background animation" aria-label="Toggle background animation">
+    <svg id="motion-icon-play" class="hidden" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polygon points="5 3 19 12 5 21 5 3"/></svg>
+    <svg id="motion-icon-pause" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="6" y="4" width="4" height="16"/><rect x="14" y="4" width="4" height="16"/></svg>
+  </button>
+
+  <!-- Theme Switcher -->
+  <div id="theme-switcher" class="theme-switcher">
+    <button class="theme-toggle-btn" id="theme-toggle-btn" title="Switch Theme" aria-label="Switch theme">
+      <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="4"/><path d="M12 2v2m0 16v2M4.93 4.93l1.41 1.41m11.32 11.32 1.41 1.41M2 12h2m16 0h2M4.93 19.07l1.41-1.41m11.32-11.32 1.41-1.41"/></svg>
+    </button>
+    <div class="theme-dropdown hidden" id="theme-dropdown">
+      <button class="theme-option active" data-theme="doomsday">
+        <span class="theme-swatch doomsday-swatch"></span> Doomsday Dark
+      </button>
+      <button class="theme-option" data-theme="infinity">
+        <span class="theme-swatch infinity-swatch"></span> Infinity Stones
+      </button>
+      <button class="theme-option" data-theme="multiverse">
+        <span class="theme-swatch multiverse-swatch"></span> Multiverse Madness
+      </button>
+      <button class="theme-option" data-theme="stark">
+        <span class="theme-swatch stark-swatch"></span> Stark Tech
+      </button>
+      <button class="theme-option" data-theme="asgard">
+        <span class="theme-swatch asgard-swatch"></span> Asgardian Gold
+      </button>
+    </div>
+  </div>
+
+  <!-- Toast Container -->
+  <div id="toast-container" class="toast-container"></div>
+
+  <!-- Modal Overlay -->
+  <div id="modal-overlay" class="modal-overlay hidden">
+    <div class="modal-content" id="modal-content">
+      <button class="modal-close" id="modal-close" aria-label="Close modal">&times;</button>
+      <div id="modal-body"></div>
+    </div>
+  </div>
+
+  <!-- Main App Shell -->
+  <div id="app" class="app-shell">
+    <!-- Navigation -->
+    <nav class="top-nav" id="top-nav">
+      <div class="nav-brand">
+        <div class="avengers-logo">
+          <svg viewBox="0 0 100 100" width="36" height="36">
+            <polygon points="50,5 95,85 5,85" fill="none" stroke="currentColor" stroke-width="4"/>
+            <text x="50" y="72" text-anchor="middle" font-family="Orbitron" font-size="32" font-weight="900" fill="currentColor">A</text>
+          </svg>
+        </div>
+        <div class="brand-text">
+          <h1 class="brand-title">DOOMSDAY</h1>
+          <span class="brand-sub">Mission Command Center</span>
+        </div>
+      </div>
+      <div class="nav-search">
+        <div class="search-wrapper">
+          <svg class="search-icon" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+          <input type="text" id="global-search" class="search-input" placeholder="Search heroes, missions, events..." autocomplete="off" />
+          <kbd class="search-kbd">⌘K</kbd>
+        </div>
+      </div>
+      <div class="nav-actions">
+        <button class="nav-btn" id="sound-toggle-btn" title="Toggle Tactical Audio FX">
+          <span id="sound-icon">🔊</span>
+          <span class="btn-label" id="sound-label">Audio ON</span>
+        </button>
+        <button class="nav-btn" id="calendar-connect-btn" title="Connect Google Calendar">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="4" width="18" height="18" rx="2" ry="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>
+          <span class="btn-label" id="calendar-status-label">Connect Calendar</span>
+          <span class="status-dot disconnected" id="calendar-status-dot"></span>
+        </button>
+      </div>
+    </nav>
+
+    <!-- Tab Navigation -->
+    <div class="tab-bar" id="tab-bar">
+      <button class="tab-btn active" data-tab="dashboard">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/></svg>
+        Dashboard
+      </button>
+      <button class="tab-btn" data-tab="heroes">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>
+        Heroes
+      </button>
+      <button class="tab-btn" data-tab="missions">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/><polyline points="22 4 12 14.01 9 11.01"/></svg>
+        Missions
+      </button>
+      <button class="tab-btn" data-tab="incursions">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><path d="M12 2a14.5 14.5 0 0 0 0 20 14.5 14.5 0 0 0 0-20"/><path d="M2 12h20"/></svg>
+        Incursions
+      </button>
+      <button class="tab-btn" data-tab="arena">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"/></svg>
+        Battle Arena
+      </button>
+      <button class="tab-btn" data-tab="analytics">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="18" y1="20" x2="18" y2="10"/><line x1="12" y1="20" x2="12" y2="4"/><line x1="6" y1="20" x2="6" y2="14"/></svg>
+        Analytics
+      </button>
+      <button class="tab-btn" data-tab="calendar">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="4" width="18" height="18" rx="2" ry="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>
+        Calendar
+      </button>
+    </div>
+
+    <!-- Main Content Area -->
+    <main class="main-content" id="main-content">
+
+      <!-- ===== DASHBOARD TAB ===== -->
+      <section class="tab-panel active" id="panel-dashboard">
+        <!-- Hero Banner -->
+        <div class="hero-banner" id="hero-banner">
+          <div class="hero-content">
+            <div class="hero-badge">⚡ THREAT LEVEL: OMEGA</div>
+            <h2 class="hero-title">AVENGERS: <span class="accent-text">DOOMSDAY</span></h2>
+            <p class="hero-desc">The multiverse faces its greatest threat. Assemble the team, track critical missions, and prepare for the ultimate battle against Doctor Doom.</p>
+            <div class="hero-actions">
+              <button class="btn btn-primary" id="btn-new-mission">
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+                New Mission
+              </button>
+              <button class="btn btn-ghost" id="btn-view-roster">View Roster</button>
+              <button class="btn btn-trailer" id="btn-watch-trailer">
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor"><polygon points="5 3 19 12 5 21 5 3"/></svg>
+                Watch Trailer
+              </button>
+            </div>
+          </div>
+          <div class="hero-visual">
+            <div class="doom-avatar-frame" id="doom-avatar-frame">
+              <div class="orbital-ring ring-outer"></div>
+              <div class="orbital-ring ring-middle"></div>
+              <div class="orbital-ring ring-inner"></div>
+              <div class="doom-img-wrapper">
+                <img
+                  src="/images/characters/doctor-doom.jpg"
+                  alt="Doctor Victor Von Doom - Ruler of Latveria"
+                  class="doom-hero-photo"
+                  id="doom-hero-photo"
+                  onerror="this.onerror=null; this.src='/images/characters/doctor-doom.svg';"
+                />
+              </div>
+              <div class="doom-photo-badge">
+                <span class="live-dot"></span>
+                <span>DR. VICTOR VON DOOM</span>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Live Avengers Doomsday Movie Countdown -->
+        <div class="glass-card countdown-card" id="countdown-card">
+          <div class="countdown-header">
+            <div class="countdown-badge">🎬 MARVEL STUDIOS GLOBAL COUNTDOWN</div>
+            <h3 class="countdown-title">AVENGERS: DOOMSDAY <span class="accent-text">THEATRICAL PREMIERE</span></h3>
+            <span class="countdown-date">DECEMBER 18, 2026 • DIRECTED BY THE RUSSO BROTHERS</span>
+          </div>
+          <div class="countdown-timer-grid">
+            <div class="time-box"><span class="time-val" id="cd-days">--</span><span class="time-lbl">DAYS</span></div>
+            <div class="time-box"><span class="time-val" id="cd-hours">--</span><span class="time-lbl">HOURS</span></div>
+            <div class="time-box"><span class="time-val" id="cd-mins">--</span><span class="time-lbl">MINUTES</span></div>
+            <div class="time-box"><span class="time-val" id="cd-secs">--</span><span class="time-lbl">SECONDS</span></div>
+          </div>
+          <div class="countdown-actions">
+            <button class="btn btn-sm btn-primary" id="btn-sync-premiere-cal">
+              📅 Add Premiere to Google Calendar (Dec 18, 2026)
+            </button>
+            <span class="countdown-tip">⚡ Synchronizes directly with your personal calendar</span>
+          </div>
+        </div>
+
+        <!-- Official Avengers Doomsday Trailer Cinema Hub -->
+        <div class="glass-card trailer-hub-card" id="trailer-hub-card">
+          <div class="card-header">
+            <div class="trailer-header-title">
+              <span class="badge badge-warning">OFFICIAL MARVEL STUDIOS BROADCAST</span>
+              <h3 class="card-title" id="trailer-title-display">AVENGERS: DOOMSDAY — Official Teaser Trailer</h3>
+            </div>
+            <div class="trailer-actions">
+              <a
+                href="https://www.youtube.com/watch?v=irVNGjRFZGk"
+                target="_blank"
+                rel="noopener noreferrer"
+                class="btn btn-sm btn-primary-outline"
+                id="btn-open-youtube"
+                title="Watch on official Marvel Studios YouTube channel"
+              >
+                ▶ Watch on YouTube (4K)
+              </a>
+              <button class="btn btn-sm btn-ghost" id="btn-theater-mode" title="Toggle Theater Dimming">
+                💡 Theater Lights
+              </button>
+            </div>
+          </div>
+
+          <!-- Video Channel Tabs -->
+          <div class="trailer-tabs-bar">
+            <button
+              class="trailer-tab-btn active"
+              data-vid="irVNGjRFZGk"
+              data-title="AVENGERS: DOOMSDAY — Official Teaser Trailer"
+            >
+              🎬 Avengers: Doomsday Official Teaser
+            </button>
+            <button
+              class="trailer-tab-btn"
+              data-vid="GH_6g2o9G2o"
+              data-title="HALL H REVEAL — Robert Downey Jr. as Doctor Doom"
+            >
+              👑 SDCC: RDJ as Doctor Doom Reveal
+            </button>
+            <button
+              class="trailer-tab-btn"
+              data-vid="X1aFkAkFASk"
+              data-title="AVENGERS: DOOMSDAY — Cinematic Special Look"
+            >
+              🌌 Doomsday Cinematic Special Look
+            </button>
+          </div>
+
+          <div class="trailer-video-wrapper">
+            <iframe
+              id="trailer-iframe"
+              class="trailer-iframe"
+              src="https://www.youtube.com/embed/irVNGjRFZGk?rel=0&modestbranding=1"
+              title="Marvel Studios' Avengers: Doomsday - Official Teaser Trailer"
+              frameborder="0"
+              allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
+              referrerpolicy="strict-origin-when-cross-origin"
+              allowfullscreen>
+            </iframe>
+          </div>
+          <div class="trailer-info-bar">
+            <div class="trailer-synopsis">
+              <strong>Official Marvel Studios Broadcast:</strong> Doctor Victor Von Doom arrives in the Marvel Cinematic Universe to conquer the collapsing multiverse. Starring Robert Downey Jr. as Doctor Victor Von Doom, directed by Anthony and Joe Russo. Releasing in theaters worldwide <strong>December 18, 2026</strong>.
+            </div>
+            <div class="trailer-tags">
+              <span class="tag">Robert Downey Jr.</span>
+              <span class="tag">Doctor Doom</span>
+              <span class="tag">Russo Brothers</span>
+              <span class="tag">Earth-616 & Battleworld</span>
+              <span class="tag">December 18, 2026</span>
+            </div>
+          </div>
+        </div>
+
+        <!-- Quick Stats -->
+        <div class="stats-grid" id="stats-grid">
+          <div class="stat-card" data-stat="heroes">
+            <div class="stat-icon heroes-icon">
+              <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/></svg>
+            </div>
+            <div class="stat-info">
+              <span class="stat-value" id="stat-heroes">0</span>
+              <span class="stat-label">Active Heroes</span>
+            </div>
+            <div class="stat-trend up">↑ 12%</div>
+          </div>
+          <div class="stat-card" data-stat="missions">
+            <div class="stat-icon missions-icon">
+              <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/><polyline points="22 4 12 14.01 9 11.01"/></svg>
+            </div>
+            <div class="stat-info">
+              <span class="stat-value" id="stat-missions">0</span>
+              <span class="stat-label">Active Missions</span>
+            </div>
+            <div class="stat-trend up">↑ 8%</div>
+          </div>
+          <div class="stat-card" data-stat="threats">
+            <div class="stat-icon threats-icon">
+              <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="m21.73 18-8-14a2 2 0 0 0-3.48 0l-8 14A2 2 0 0 0 4 21h16a2 2 0 0 0 1.73-3Z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>
+            </div>
+            <div class="stat-info">
+              <span class="stat-value" id="stat-threats">5</span>
+              <span class="stat-label">Threat Level</span>
+            </div>
+            <div class="stat-trend danger">OMEGA</div>
+          </div>
+          <div class="stat-card" data-stat="events">
+            <div class="stat-icon events-icon">
+              <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>
+            </div>
+            <div class="stat-info">
+              <span class="stat-value" id="stat-events">0</span>
+              <span class="stat-label">Upcoming Events</span>
+            </div>
+            <div class="stat-trend neutral">Today</div>
+          </div>
+        </div>
+
+        <!-- Dashboard Grid -->
+        <div class="dashboard-grid">
+          <!-- Recent Missions Widget -->
+          <div class="glass-card span-2">
+            <div class="card-header">
+              <h3 class="card-title">Recent Missions</h3>
+              <button class="btn btn-sm btn-ghost" id="btn-add-quick-mission">+ Add</button>
+            </div>
+            <div class="mission-list" id="dashboard-missions"></div>
+          </div>
+          <!-- Threat Meter -->
+          <div class="glass-card">
+            <div class="card-header">
+              <h3 class="card-title">Doom Threat Meter</h3>
+            </div>
+            <div class="threat-meter-container" id="threat-meter-container">
+              <canvas id="threat-gauge" width="220" height="160"></canvas>
+              <div class="threat-level-label" id="threat-level-label">OMEGA</div>
+              <input type="range" id="threat-slider" class="threat-slider" min="0" max="100" value="85" />
+            </div>
+          </div>
+          <!-- Upcoming Events Mini -->
+          <div class="glass-card span-2">
+            <div class="card-header">
+              <h3 class="card-title">Upcoming Events</h3>
+              <button class="btn btn-sm btn-ghost" id="btn-goto-calendar">View All →</button>
+            </div>
+            <div class="events-mini-list" id="dashboard-events"></div>
+          </div>
+          <!-- Team Readiness -->
+          <div class="glass-card">
+            <div class="card-header">
+              <h3 class="card-title">Team Readiness</h3>
+            </div>
+            <div class="readiness-chart-container">
+              <canvas id="readiness-chart" width="260" height="260"></canvas>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- ===== HEROES TAB ===== -->
+      <section class="tab-panel" id="panel-heroes">
+        <div class="panel-header">
+          <h2 class="panel-title">Avengers Roster</h2>
+          <div class="panel-actions">
+            <div class="filter-group">
+              <button class="filter-btn active" data-filter="all">All</button>
+              <button class="filter-btn" data-filter="avenger">Avengers</button>
+              <button class="filter-btn" data-filter="guardian">Guardians</button>
+              <button class="filter-btn" data-filter="xmen">X-Men</button>
+              <button class="filter-btn" data-filter="ally">Allies</button>
+            </div>
+            <button class="btn btn-primary btn-sm" id="btn-add-hero">
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+              Add Hero
+            </button>
+          </div>
+        </div>
+        <div class="heroes-grid" id="heroes-grid"></div>
+      </section>
+
+      <!-- ===== MISSIONS TAB ===== -->
+      <section class="tab-panel" id="panel-missions">
+        <div class="panel-header">
+          <h2 class="panel-title">Mission Control</h2>
+          <div class="panel-actions">
+            <button class="btn btn-primary btn-sm" id="btn-create-mission">
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+              Create Mission
+            </button>
+          </div>
+        </div>
+        <div class="kanban-board" id="kanban-board">
+          <div class="kanban-column" data-status="planning">
+            <div class="kanban-column-header">
+              <span class="kanban-dot planning"></span>
+              <h4>Planning</h4>
+              <span class="kanban-count" id="count-planning">0</span>
+            </div>
+            <div class="kanban-items" id="kanban-planning"></div>
+          </div>
+          <div class="kanban-column" data-status="active">
+            <div class="kanban-column-header">
+              <span class="kanban-dot active"></span>
+              <h4>Active</h4>
+              <span class="kanban-count" id="count-active">0</span>
+            </div>
+            <div class="kanban-items" id="kanban-active"></div>
+          </div>
+          <div class="kanban-column" data-status="critical">
+            <div class="kanban-column-header">
+              <span class="kanban-dot critical"></span>
+              <h4>Critical</h4>
+              <span class="kanban-count" id="count-critical">0</span>
+            </div>
+            <div class="kanban-items" id="kanban-critical"></div>
+          </div>
+          <div class="kanban-column" data-status="completed">
+            <div class="kanban-column-header">
+              <span class="kanban-dot completed"></span>
+              <h4>Completed</h4>
+              <span class="kanban-count" id="count-completed">0</span>
+            </div>
+            <div class="kanban-items" id="kanban-completed"></div>
+          </div>
+        </div>
+      </section>
+
+      <!-- ===== INCURSIONS TAB ===== -->
+      <section class="tab-panel" id="panel-incursions">
+        <div class="panel-header">
+          <div>
+            <h2 class="panel-title">Multiverse Incursion Defense</h2>
+            <p class="panel-sub">Real-time dimensional collision monitoring across Earth-616 and collapsing realities.</p>
+          </div>
+          <div class="panel-actions">
+            <button class="btn btn-danger btn-sm" id="btn-incursion-siren">
+              🚨 Sound Red Alert
+            </button>
+          </div>
+        </div>
+
+        <div class="incursion-grid">
+          <!-- Active Collision Visualizer -->
+          <div class="glass-card incursion-visualizer-card">
+            <div class="card-header">
+              <h3 class="card-title">Collision Singularity Chamber</h3>
+              <span class="pulse-badge critical">ACTIVE TRAJECTORY</span>
+            </div>
+            <div class="canvas-container">
+              <canvas id="incursion-canvas"></canvas>
+            </div>
+            <div class="incursion-status-info">
+              <div class="status-col">
+                <span class="status-col-lbl">COLLISION TARGET</span>
+                <strong id="incursion-detail-title" class="status-col-val">Earth-838</strong>
+              </div>
+              <div class="status-col">
+                <span class="status-col-lbl">SINGULARITY THREAT</span>
+                <strong id="incursion-detail-threat" class="status-col-val danger">88%</strong>
+              </div>
+              <div class="status-col">
+                <span class="status-col-lbl">IMPACT COUNTDOWN</span>
+                <strong id="incursion-detail-timer" class="status-col-val accent">23:40</strong>
+              </div>
+            </div>
+            <div class="incursion-actions">
+              <button class="btn btn-primary btn-block" id="btn-stabilize-incursion">
+                🛡️ Stabilize Dimensional Anchor (Minigame)
+              </button>
+            </div>
+          </div>
+
+          <!-- Incursions List -->
+          <div class="glass-card incursion-zones-card">
+            <div class="card-header">
+              <h3 class="card-title">Active Dimensional Rifts</h3>
+              <span class="badge badge-sm">3 DETECTED</span>
+            </div>
+            <div class="incursions-list" id="incursions-list"></div>
+          </div>
+        </div>
+      </section>
+
+      <!-- ===== BATTLE ARENA TAB ===== -->
+      <section class="tab-panel" id="panel-arena">
+        <div class="panel-header">
+          <div>
+            <h2 class="panel-title">Hero Combat Arena</h2>
+            <p class="panel-sub">Simulate tactical battles between Avengers or test their might against Doctor Doom.</p>
+          </div>
+        </div>
+
+        <div class="glass-card arena-container">
+          <!-- Matchup Bar -->
+          <div class="arena-matchup-bar">
+            <div class="arena-select-group">
+              <label>OPERATIVE 1</label>
+              <select id="select-fighter-1" class="arena-select"></select>
+            </div>
+            <div class="arena-vs-badge">VS</div>
+            <div class="arena-select-group">
+              <label>OPERATIVE 2 / BOSS</label>
+              <select id="select-fighter-2" class="arena-select"></select>
+            </div>
+          </div>
+
+          <!-- Fighter Dual Display -->
+          <div class="arena-fighters-grid">
+            <div class="arena-fighter-card" id="card-fighter-1"></div>
+            <div class="arena-fighter-card opponent" id="card-fighter-2"></div>
+          </div>
+
+          <!-- Battle Trigger -->
+          <div class="arena-action-center">
+            <button class="btn btn-primary btn-lg" id="btn-start-battle">
+              ⚔️ Initiate Combat Simulation
+            </button>
+          </div>
+
+          <!-- Combat Feed Log -->
+          <div class="arena-log-container">
+            <div class="card-header">
+              <h4 class="card-title">Combat Feed & Telemetry</h4>
+              <span class="status-dot connected"></span>
+            </div>
+            <div class="arena-battle-log" id="arena-battle-log">
+              <div class="log-entry system">Ready for battle initialization. Select two operatives and engage simulation.</div>
+            </div>
+          </div>
+
+          <!-- Multiverse War Probability Engine (Avengers vs Doctor Doom) -->
+          <div class="multiverse-sim-card" id="multiverse-sim-card">
+            <div class="card-header">
+              <div>
+                <span class="multiverse-header-badge">🔮 DOCTOR STRANGE PROBABILITY MATRIX</span>
+                <h3 class="card-title">Avengers vs Doctor Doom: Multiverse War Prediction</h3>
+              </div>
+              <span class="badge badge-warning" id="sim-status-badge">14,000,605 SCENARIOS MONITORED</span>
+            </div>
+
+            <p style="color: var(--text-secondary); font-size: 0.88rem; line-height: 1.5; margin-bottom: var(--space-md);">
+              Quantum Monte Carlo calculation simulating 10,000 multiversal combat realities of Earth-616 and the United Avengers Coalition against God-Emperor Doctor Doom.
+            </p>
+
+            <div class="sim-controls-bar">
+              <button class="btn-sim-run" id="btn-run-multiverse-sim">
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><polygon points="10 8 16 12 10 16 10 8"/></svg>
+                Run 10,000 Battle Simulations
+              </button>
+              <div id="sim-counter-display" style="font-family: var(--font-mono); font-size: 0.85rem; color: var(--accent-secondary);">
+                Iterations: <strong>10,000 / 10,000</strong> (Calculated)
+              </div>
+            </div>
+
+            <div class="sim-progress-wrapper">
+              <div class="sim-progress-fill" id="sim-progress-fill" style="width: 100%;"></div>
+            </div>
+
+            <!-- Triple Outcome Grid -->
+            <div class="sim-stats-triple">
+              <div class="sim-stat-card avengers-card">
+                <span class="sim-stat-label">Avengers Coalition Victory</span>
+                <div class="sim-stat-val green" id="sim-val-avengers">38.4%</div>
+                <div class="sim-stat-sub" id="sim-sub-avengers">3,840 / 10,000 Realities</div>
+              </div>
+              <div class="sim-stat-card doom-card">
+                <span class="sim-stat-label">Doctor Doom Supremacy</span>
+                <div class="sim-stat-val red" id="sim-val-doom">54.2%</div>
+                <div class="sim-stat-sub" id="sim-sub-doom">5,420 / 10,000 Realities</div>
+              </div>
+              <div class="sim-stat-card cataclysm-card">
+                <span class="sim-stat-label">Mutual Incursion Cataclysm</span>
+                <div class="sim-stat-val amber" id="sim-val-cataclysm">7.4%</div>
+                <div class="sim-stat-sub" id="sim-sub-cataclysm">740 Timelines Collapsed</div>
+              </div>
+            </div>
+
+            <!-- Individual Hero 1-on-1 Survival & Win Matrix -->
+            <div class="sim-solo-section">
+              <div class="sim-solo-title">
+                <span>Operative Solo Duel Win Rates vs Doctor Doom (1v1)</span>
+                <span style="font-family: var(--font-mono); font-size: 0.72rem; color: var(--text-tertiary);">APEX THREAT LEVEL 100</span>
+              </div>
+              <div class="sim-solo-grid" id="sim-solo-grid">
+                <!-- Dynamically populated by arena.js -->
+              </div>
+            </div>
+
+            <!-- Strategic Telemetry Briefing -->
+            <div class="sim-intel-quote">
+              <strong>Tactical Assessment (Doctor Strange Multiverse Scan):</strong>
+              Solo assaults against Doctor Doom result in a staggering <strong>91.4% defeat rate</strong> across all timelines. Doctor Doom's Beyonder-infused forcefield and Latverian temporal shielding neutralize conventional physical trauma. The <strong>38.4% victory probability</strong> is achieved strictly when Wanda Maximoff (Scarlet Witch) triggers a hex-inversion on Doom's cosmic siphon, enabling Doctor Strange to seal the dimensional rift while Thor and Iron Man unleash a concentrated Asgardian-nanotech EMP.
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- ===== ANALYTICS TAB ===== -->
+      <section class="tab-panel" id="panel-analytics">
+        <div class="panel-header">
+          <h2 class="panel-title">Tactical Analytics</h2>
+        </div>
+        <div class="analytics-grid">
+          <div class="glass-card span-2">
+            <div class="card-header">
+              <h3 class="card-title">Mission Completion Trend</h3>
+            </div>
+            <div class="chart-container">
+              <canvas id="mission-trend-chart"></canvas>
+            </div>
+          </div>
+          <div class="glass-card">
+            <div class="card-header">
+              <h3 class="card-title">Team Power Distribution</h3>
+            </div>
+            <div class="chart-container">
+              <canvas id="power-distribution-chart"></canvas>
+            </div>
+          </div>
+          <div class="glass-card">
+            <div class="card-header">
+              <h3 class="card-title">Threat Categories</h3>
+            </div>
+            <div class="chart-container">
+              <canvas id="threat-categories-chart"></canvas>
+            </div>
+          </div>
+          <div class="glass-card">
+            <div class="card-header">
+              <h3 class="card-title">Hero Power Stats</h3>
+            </div>
+            <div class="chart-container">
+              <canvas id="hero-radar-chart"></canvas>
+            </div>
+          </div>
+          <div class="glass-card">
+            <div class="card-header">
+              <h3 class="card-title">Mission Priority</h3>
+            </div>
+            <div class="chart-container">
+              <canvas id="priority-chart"></canvas>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- ===== CALENDAR TAB ===== -->
+      <section class="tab-panel" id="panel-calendar">
+        <div class="panel-header">
+          <h2 class="panel-title">Mission Calendar</h2>
+          <div class="panel-actions">
+            <button class="btn btn-primary btn-sm" id="btn-create-event">
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+              Create Event
+            </button>
+            <button class="btn btn-ghost btn-sm" id="btn-refresh-events">
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="23 4 23 10 17 10"/><path d="M20.49 15a9 9 0 1 1-2.12-9.36L23 10"/></svg>
+              Refresh
+            </button>
+          </div>
+        </div>
+        <!-- Google Calendar Integration Banner -->
+        <div class="demo-banner" id="demo-banner">
+          <div class="demo-banner-content">
+            <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
+            <span id="calendar-banner-text"><strong>Google Calendar Integration:</strong> Sync missions to Google Calendar live or use 1-click instant web sync.</span>
+          </div>
+          <div class="demo-banner-actions">
+            <button class="btn btn-sm btn-primary" id="demo-connect-btn">Connect OAuth</button>
+            <button class="btn btn-sm btn-ghost" id="btn-open-cal-settings">⚙️ API Setup</button>
+          </div>
+        </div>
+        <div class="calendar-layout">
+          <!-- Mini Calendar -->
+          <div class="glass-card calendar-mini-card">
+            <div class="mini-cal-header">
+              <button class="mini-cal-nav" id="cal-prev">‹</button>
+              <span id="cal-month-year">October 2026</span>
+              <button class="mini-cal-nav" id="cal-next">›</button>
+            </div>
+            <div class="mini-cal-grid" id="mini-cal-grid"></div>
+          </div>
+          <!-- Agenda View -->
+          <div class="glass-card calendar-agenda-card">
+            <div class="card-header">
+              <h3 class="card-title" id="agenda-title">Today's Agenda</h3>
+            </div>
+            <div class="agenda-list" id="agenda-list"></div>
+          </div>
+        </div>
+      </section>
+
+    </main>
+  </div>
+
+  <script type="module" src="/src/main.js"></script>
+</body>
+</html>
