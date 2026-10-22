@@ -74,11 +74,45 @@
           <span class="brand-sub">Mission Command Center</span>
         </div>
       </div>
-      <div class="nav-search">
+      <div class="nav-search" id="nav-search-container">
         <div class="search-wrapper">
           <svg class="search-icon" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
-          <input type="text" id="global-search" class="search-input" placeholder="Search heroes, missions, events..." autocomplete="off" />
-          <kbd class="search-kbd">⌘K</kbd>
+          <input
+            type="text"
+            id="global-search"
+            class="search-input"
+            placeholder="Search operatives, missions, timeline, incursions... (⌘K)"
+            autocomplete="off"
+            spellcheck="false"
+            aria-label="Omnisearch Command Palette"
+          />
+          <button type="button" id="search-clear-btn" class="search-clear-btn hidden" title="Clear Search (Esc)" aria-label="Clear Search">✕</button>
+          <kbd class="search-kbd" id="search-kbd-hint">⌘K</kbd>
+        </div>
+
+        <!-- Interactive Omnisearch Command Palette Dropdown -->
+        <div id="search-dropdown" class="search-dropdown hidden" role="listbox" aria-label="Search Results">
+          <div class="search-dropdown-filters">
+            <button class="search-filter-pill active" data-filter="all">All <span class="pill-count" id="count-all">0</span></button>
+            <button class="search-filter-pill" data-filter="heroes">Operatives <span class="pill-count" id="count-heroes">0</span></button>
+            <button class="search-filter-pill" data-filter="missions">Missions <span class="pill-count" id="count-missions">0</span></button>
+            <button class="search-filter-pill" data-filter="events">Timeline <span class="pill-count" id="count-events">0</span></button>
+            <button class="search-filter-pill" data-filter="incursions">Incursions <span class="pill-count" id="count-incursions">0</span></button>
+            <button class="search-filter-pill" data-filter="actions">Commands <span class="pill-count" id="count-actions">0</span></button>
+          </div>
+
+          <div class="search-results-list" id="search-results-list">
+            <!-- Dynamically populated -->
+          </div>
+
+          <div class="search-dropdown-footer">
+            <div class="search-footer-shortcuts">
+              <span><kbd class="key-hint">↑</kbd><kbd class="key-hint">↓</kbd> Navigate</span>
+              <span><kbd class="key-hint">↵</kbd> Select</span>
+              <span><kbd class="key-hint">ESC</kbd> Dismiss</span>
+            </div>
+            <span class="search-footer-brand">JARVIS OMNISEARCH // AVENGERS</span>
+          </div>
         </div>
       </div>
       <div class="nav-actions">
@@ -370,6 +404,7 @@
             </button>
           </div>
         </div>
+        <div id="heroes-search-banner" class="search-active-banner hidden"></div>
         <div class="heroes-grid" id="heroes-grid"></div>
       </section>
 
@@ -384,6 +419,7 @@
             </button>
           </div>
         </div>
+        <div id="missions-search-banner" class="search-active-banner hidden"></div>
         <div class="kanban-board" id="kanban-board">
           <div class="kanban-column" data-status="planning">
             <div class="kanban-column-header">
@@ -665,6 +701,7 @@
             <button class="btn btn-sm btn-ghost" id="btn-open-cal-settings">⚙️ API Setup</button>
           </div>
         </div>
+        <div id="calendar-search-banner" class="search-active-banner hidden"></div>
         <div class="calendar-layout">
           <!-- Mini Calendar -->
           <div class="glass-card calendar-mini-card">

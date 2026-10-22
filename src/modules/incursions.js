@@ -130,15 +130,28 @@ function handleStabilizeClick() {
   renderIncursionDetail();
 }
 
+export function selectIncursionZone(index) {
+  if (index >= 0 && index < zones.length) {
+    activeZoneIndex = index;
+    renderIncursionList();
+    renderIncursionDetail();
+  }
+}
+
 function initCollisionCanvas() {
   const canvas = document.getElementById('incursion-canvas');
   if (!canvas) return;
   const ctx = canvas.getContext('2d');
 
+  function resizeCanvas() {
+    canvas.width = canvas.parentElement?.clientWidth || 340;
+    canvas.height = 240;
+  }
+  resizeCanvas();
+  window.addEventListener('resize', resizeCanvas);
+
   let angle = 0;
   function draw() {
-    canvas.width = canvas.parentElement.clientWidth || 340;
-    canvas.height = 240;
     const w = canvas.width;
     const h = canvas.height;
 

@@ -112,6 +112,17 @@ function renderFighterCards() {
   `;
 }
 
+function addBattleLog(msg, type = 'normal') {
+  const logEl = document.getElementById('arena-battle-log');
+  if (!logEl) return;
+  const entry = document.createElement('div');
+  entry.className = `log-entry ${type}`;
+  entry.textContent = msg;
+  logEl.appendChild(entry);
+  logEl.scrollTop = logEl.scrollHeight;
+}
+const addLog = addBattleLog;
+
 async function startBattleSimulation() {
   if (isBattling || !fighter1 || !fighter2) return;
   if (fighter1.id === fighter2.id) {
@@ -132,14 +143,7 @@ async function startBattleSimulation() {
   let hp2 = 100;
   let round = 1;
 
-  const addLog = (msg, type = 'normal') => {
-    if (!logEl) return;
-    const entry = document.createElement('div');
-    entry.className = `log-entry ${type}`;
-    entry.textContent = msg;
-    logEl.appendChild(entry);
-    logEl.scrollTop = logEl.scrollHeight;
-  };
+  const addLog = addBattleLog;
 
   const delay = (ms) => new Promise(r => setTimeout(r, ms));
 

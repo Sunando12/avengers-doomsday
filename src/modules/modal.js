@@ -57,4 +57,8 @@ export function initModal() {
       closeModal();
     }
   });
+
+  // Expose on window for inline template onclick handlers
+  window.closeModal = closeModal;
+  window.__closeModal = closeModal;
 }

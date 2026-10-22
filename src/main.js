@@ -20,14 +20,14 @@ import {
   playBlip, playSuccess, playAlert, playBlast, playShield,
   toggleAudio, isAudioEnabled
 } from './modules/audio.js';
-import { initIncursions } from './modules/incursions.js';
+import { initIncursions, selectIncursionZone } from './modules/incursions.js';
 import { initArena, updateArenaHeroes, selectFighter1 } from './modules/arena.js';
 import {
   drawThreatGauge, initReadinessChart,
   initMissionTrendChart, initPowerDistributionChart,
   initThreatCategoriesChart, initHeroRadarChart, initPriorityChart,
 } from './modules/charts.js';
-import { HEROES as DEFAULT_HEROES, MISSIONS as DEFAULT_MISSIONS } from './data/mock-data.js';
+import { HEROES as DEFAULT_HEROES, MISSIONS as DEFAULT_MISSIONS, INCURSION_ZONES } from './data/mock-data.js';
 import Sortable from 'sortablejs';
 
 // ═══════════════════════════════════════════════════════════════
@@ -239,26 +239,501 @@ function updateAudioUI() {
 }
 
 // ═══════════════════════════════════════════════════════════════
-// SEARCH
+// OMNISEARCH COMMAND PALETTE
 // ═══════════════════════════════════════════════════════════════
+let searchFilter = 'all';
+let searchHighlightIndex = -1;
+
+function escapeHtml(str) {
+  if (!str) return '';
+  return String(str)
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;');
+}
+
+function highlightMatch(text, query) {
+  if (!text) return '';
+  const escaped = escapeHtml(text);
+  if (!query) return escaped;
+  const safeQ = query.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+  const regex = new RegExp(`(${safeQ})`, 'gi');
+  return escaped.replace(regex, '<mark class="search-highlight">$1</mark>');
+}
+
 function initSearch() {
   const input = document.getElementById('global-search');
-  if (!input) return;
+  const clearBtn = document.getElementById('search-clear-btn');
+  const dropdown = document.getElementById('search-dropdown');
+  const searchContainer = document.getElementById('nav-search-container');
+  if (!input || !dropdown) return;
 
+  // Filter Pills clicking
+  const filterPills = dropdown.querySelectorAll('.search-filter-pill');
+  filterPills.forEach(pill => {
+    pill.addEventListener('click', (e) => {
+      e.stopPropagation();
+      playBlip(700);
+      filterPills.forEach(p => p.classList.remove('active'));
+      pill.classList.add('active');
+      searchFilter = pill.dataset.filter || 'all';
+      renderOmnisearchResults();
+    });
+  });
+
+  // Input event
   input.addEventListener('input', (e) => {
     searchQuery = e.target.value.toLowerCase().trim();
+    if (clearBtn) clearBtn.classList.toggle('hidden', !searchQuery);
+    openSearchDropdown();
+    renderOmnisearchResults();
     renderHeroes();
+    renderMissions();
+    renderAgenda();
     renderDashboardMissions();
   });
 
-  // Keyboard shortcut ⌘K / Ctrl+K
+  // Focus event
+  input.addEventListener('focus', () => {
+    openSearchDropdown();
+    renderOmnisearchResults();
+  });
+
+  // Clear button
+  if (clearBtn) {
+    clearBtn.addEventListener('click', (e) => {
+      e.stopPropagation();
+      playBlip(600);
+      window.__clearSearch();
+      input.focus();
+    });
+  }
+
+  // Keyboard navigation & Shortcuts
+  input.addEventListener('keydown', (e) => {
+    const items = dropdown.querySelectorAll('.search-item');
+    if (e.key === 'ArrowDown') {
+      e.preventDefault();
+      if (items.length === 0) return;
+      searchHighlightIndex = (searchHighlightIndex + 1) % items.length;
+      updateSearchHighlight(items);
+    } else if (e.key === 'ArrowUp') {
+      e.preventDefault();
+      if (items.length === 0) return;
+      searchHighlightIndex = (searchHighlightIndex - 1 + items.length) % items.length;
+      updateSearchHighlight(items);
+    } else if (e.key === 'Enter') {
+      e.preventDefault();
+      if (items.length > 0) {
+        const targetIndex = searchHighlightIndex >= 0 ? searchHighlightIndex : 0;
+        const selectedEl = items[targetIndex];
+        if (selectedEl) selectedEl.click();
+      }
+    } else if (e.key === 'Escape') {
+      closeSearchDropdown();
+      input.blur();
+    }
+  });
+
+  // Global shortcut ⌘K / Ctrl+K
   document.addEventListener('keydown', (e) => {
-    if ((e.metaKey || e.ctrlKey) && e.key === 'k') {
+    if ((e.metaKey || e.ctrlKey) && e.key.toLowerCase() === 'k') {
       e.preventDefault();
       input.focus();
+      openSearchDropdown();
+      renderOmnisearchResults();
+    }
+  });
+
+  // Click outside to close dropdown
+  document.addEventListener('click', (e) => {
+    if (searchContainer && !searchContainer.contains(e.target)) {
+      closeSearchDropdown();
     }
   });
 }
+
+function openSearchDropdown() {
+  const dropdown = document.getElementById('search-dropdown');
+  if (dropdown) dropdown.classList.remove('hidden');
+}
+
+function closeSearchDropdown() {
+  const dropdown = document.getElementById('search-dropdown');
+  if (dropdown) dropdown.classList.add('hidden');
+  searchHighlightIndex = -1;
+}
+
+function updateSearchHighlight(items) {
+  items.forEach((item, idx) => {
+    const isSelected = idx === searchHighlightIndex;
+    item.classList.toggle('selected', isSelected);
+    if (isSelected) {
+      item.scrollIntoView({ block: 'nearest', behavior: 'smooth' });
+    }
+  });
+}
+
+function renderOmnisearchResults() {
+  const container = document.getElementById('search-results-list');
+  if (!container) return;
+
+  const q = searchQuery;
+
+  // 1. Heroes matching
+  const matchingHeroes = heroes.filter(h => {
+    if (!q) return true;
+    return (
+      (h.name && h.name.toLowerCase().includes(q)) ||
+      (h.alias && h.alias.toLowerCase().includes(q)) ||
+      (h.role && h.role.toLowerCase().includes(q)) ||
+      (h.team && h.team.toLowerCase().includes(q)) ||
+      (h.ultimate && h.ultimate.toLowerCase().includes(q)) ||
+      (h.bio && h.bio.toLowerCase().includes(q))
+    );
+  });
+
+  // 2. Missions matching
+  const matchingMissions = missions.filter(m => {
+    if (!q) return true;
+    return (
+      (m.title && m.title.toLowerCase().includes(q)) ||
+      (m.description && m.description.toLowerCase().includes(q)) ||
+      (m.assignee && m.assignee.toLowerCase().includes(q)) ||
+      (m.priority && m.priority.toLowerCase().includes(q)) ||
+      (m.status && m.status.toLowerCase().includes(q))
+    );
+  });
+
+  // 3. Events matching
+  const matchingEvents = events.filter(e => {
+    if (!q) return true;
+    return (
+      (e.summary && e.summary.toLowerCase().includes(q)) ||
+      (e.description && e.description.toLowerCase().includes(q)) ||
+      (e.location && e.location.toLowerCase().includes(q))
+    );
+  });
+
+  // 4. Incursions matching
+  const matchingIncursions = INCURSION_ZONES.map((z, idx) => ({ ...z, index: idx })).filter(z => {
+    if (!q) return true;
+    return (
+      (z.reality && z.reality.toLowerCase().includes(q)) ||
+      (z.name && z.name.toLowerCase().includes(q)) ||
+      (z.sector && z.sector.toLowerCase().includes(q)) ||
+      (z.status && z.status.toLowerCase().includes(q))
+    );
+  });
+
+  // 5. Commands matching
+  const allCommands = [
+    { id: 'cmd_arena', title: 'Enter Battle Arena', desc: 'Tactical duel simulation against Doctor Doom', icon: '⚔️', keywords: 'arena battle duel fight vs doom', run: () => { switchTab('arena'); } },
+    { id: 'cmd_new_hero', title: 'Assemble New Hero', desc: 'Recruit operative to the Doomsday roster', icon: '🦸', keywords: 'add new recruit hero character operative', run: () => { openHeroForm(); } },
+    { id: 'cmd_new_mission', title: 'Deploy New Mission', desc: 'Create strategic operation briefing', icon: '🎯', keywords: 'create new mission task operation kanban', run: () => { openMissionForm(); } },
+    { id: 'cmd_new_event', title: 'Schedule Timeline Briefing', desc: 'Add event to Google Calendar / local agenda', icon: '📅', keywords: 'schedule event calendar briefing meeting', run: () => { openEventForm(); } },
+    { id: 'cmd_trailer', title: 'Watch Avengers 4K Trailer', desc: 'Official Marvel Studios Doomsday teaser', icon: '🎬', keywords: 'trailer movie video youtube teaser 4k rdj doom', run: () => { switchTab('dashboard'); document.getElementById('trailer-hub-card')?.scrollIntoView({ behavior: 'smooth' }); } },
+    { id: 'cmd_siren', title: 'Trigger Red Alert Siren', desc: 'Sound multiverse collision warning alarm', icon: '🚨', keywords: 'alert siren alarm red sound emergency', run: () => { playAlert(); showToast('⚠️ MULTIVERSE RED ALERT INITIATED', 'danger'); } },
+    { id: 'cmd_audio', title: 'Toggle Tactical Audio FX', desc: 'Activate or mute combat sound effects', icon: '🔊', keywords: 'sound audio mute volume effects fx', run: () => { const a = toggleAudio(); updateAudioUI(); showToast(`Audio FX ${a ? 'Activated' : 'Muted'}`, 'info'); } },
+    { id: 'cmd_connect_cal', title: 'Google Calendar Setup', desc: 'Manage OAuth credentials & sync status', icon: '🗓️', keywords: 'google calendar oauth sync api settings', run: () => { openCalendarSettingsModal(); } },
+    { id: 'cmd_analytics', title: 'Multiverse Analytics Radar', desc: 'Inspect power distribution & threat gauges', icon: '📊', keywords: 'analytics radar charts statistics metrics', run: () => { switchTab('analytics'); } },
+    { id: 'cmd_incursions', title: 'Incursion Singularity Chamber', desc: 'Multiverse collision monitor & defense', icon: '🌌', keywords: 'incursion multiverse reality earth rift', run: () => { switchTab('incursions'); } },
+  ];
+
+  const matchingCommands = allCommands.filter(c => {
+    if (!q) return true;
+    return (
+      c.title.toLowerCase().includes(q) ||
+      c.desc.toLowerCase().includes(q) ||
+      c.keywords.toLowerCase().includes(q)
+    );
+  });
+
+  // Update filter pill counts
+  const countAll = matchingHeroes.length + matchingMissions.length + matchingEvents.length + matchingIncursions.length + matchingCommands.length;
+  const cAll = document.getElementById('count-all');
+  const cHeroes = document.getElementById('count-heroes');
+  const cMissions = document.getElementById('count-missions');
+  const cEvents = document.getElementById('count-events');
+  const cIncursions = document.getElementById('count-incursions');
+  const cActions = document.getElementById('count-actions');
+
+  if (cAll) cAll.textContent = countAll;
+  if (cHeroes) cHeroes.textContent = matchingHeroes.length;
+  if (cMissions) cMissions.textContent = matchingMissions.length;
+  if (cEvents) cEvents.textContent = matchingEvents.length;
+  if (cIncursions) cIncursions.textContent = matchingIncursions.length;
+  if (cActions) cActions.textContent = matchingCommands.length;
+
+  if (countAll === 0) {
+    container.innerHTML = `
+      <div class="search-empty-state">
+        <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+        <p>No tactical records found matching <strong>"${escapeHtml(q)}"</strong>.</p>
+        <small style="color:var(--text-tertiary);">Try searching for operatives (Iron Man, Thor), missions (Infinity Stones), or commands (Arena, Calendar).</small>
+      </div>
+    `;
+    return;
+  }
+
+  let html = '';
+
+  // Group: Heroes
+  if ((searchFilter === 'all' || searchFilter === 'heroes') && matchingHeroes.length > 0) {
+    const list = q ? matchingHeroes : matchingHeroes.slice(0, 4);
+    html += `
+      <div class="search-category-group">
+        <div class="search-category-header">
+          <span>🦸 Operatives (${matchingHeroes.length})</span>
+          ${searchFilter === 'all' ? '<span style="font-size:0.62rem;opacity:0.7;">Click to inspect dossier</span>' : ''}
+        </div>
+        ${list.map(h => `
+          <div class="search-item" onclick="window.__selectOmniHero('${h.id}')" data-type="hero" data-id="${h.id}">
+            <div class="search-item-avatar-box">
+              <img src="${h.image || '/images/characters/doctor-doom.svg'}" alt="${h.name}" class="search-item-avatar-img" onerror="this.onerror=null;this.src='/images/characters/doctor-doom.svg';" />
+            </div>
+            <div class="search-item-info">
+              <div class="search-item-top">
+                <span class="search-item-title">${highlightMatch(h.name, q)}</span>
+                <span class="search-item-alias">(${highlightMatch(h.alias, q)})</span>
+                <span class="search-item-tag ${h.team}">${h.team}</span>
+              </div>
+              <div class="search-item-meta">
+                <span>⚡ ${highlightMatch(h.role || 'Operative', q)}</span>
+                <span>&bull;</span>
+                <span>Power: <strong>${h.power}</strong></span>
+                ${h.ultimate ? `<span>&bull;</span> <span>${highlightMatch(h.ultimate, q)}</span>` : ''}
+              </div>
+            </div>
+          </div>
+        `).join('')}
+      </div>
+    `;
+  }
+
+  // Group: Missions
+  if ((searchFilter === 'all' || searchFilter === 'missions') && matchingMissions.length > 0) {
+    const list = q ? matchingMissions : matchingMissions.slice(0, 4);
+    html += `
+      <div class="search-category-group">
+        <div class="search-category-header">
+          <span>🎯 Tactical Missions (${matchingMissions.length})</span>
+          ${searchFilter === 'all' ? '<span style="font-size:0.62rem;opacity:0.7;">Click to jump to board</span>' : ''}
+        </div>
+        ${list.map(m => `
+          <div class="search-item" onclick="window.__selectOmniMission('${m.id}')" data-type="mission" data-id="${m.id}">
+            <div class="search-item-avatar-box" style="font-size:0.9rem;">🎯</div>
+            <div class="search-item-info">
+              <div class="search-item-top">
+                <span class="search-item-title">${highlightMatch(m.title, q)}</span>
+                <span class="badge badge-${m.priority === 'high' ? 'danger' : (m.priority === 'medium' ? 'warning' : 'outline')}" style="font-size:0.65rem;padding:1px 6px;">${m.priority}</span>
+                <span class="status-dot status-${m.status}" style="width:8px;height:8px;display:inline-block;" title="Status: ${m.status}"></span>
+              </div>
+              <div class="search-item-meta">
+                <span>👤 ${highlightMatch(m.assignee, q)}</span>
+                <span>&bull;</span>
+                <span>Due: ${m.deadline}</span>
+                <span>&bull;</span>
+                <span>${highlightMatch(m.description, q)}</span>
+              </div>
+            </div>
+          </div>
+        `).join('')}
+      </div>
+    `;
+  }
+
+  // Group: Events
+  if ((searchFilter === 'all' || searchFilter === 'events') && matchingEvents.length > 0) {
+    const list = q ? matchingEvents : matchingEvents.slice(0, 3);
+    html += `
+      <div class="search-category-group">
+        <div class="search-category-header">
+          <span>📅 Timeline Briefings (${matchingEvents.length})</span>
+          ${searchFilter === 'all' ? '<span style="font-size:0.62rem;opacity:0.7;">Click to view agenda</span>' : ''}
+        </div>
+        ${list.map(e => {
+          const start = new Date(e.start?.dateTime || e.start?.date);
+          const timeStr = !isNaN(start.getTime()) ? start.toLocaleDateString('en-US', { month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' }) : 'Scheduled';
+          return `
+            <div class="search-item" onclick="window.__selectOmniEvent('${e.id}')" data-type="event" data-id="${e.id}">
+              <div class="search-item-avatar-box" style="font-size:0.9rem;">🗓️</div>
+              <div class="search-item-info">
+                <div class="search-item-top">
+                  <span class="search-item-title">${highlightMatch(e.summary, q)}</span>
+                  <span class="search-item-alias">${timeStr}</span>
+                </div>
+                <div class="search-item-meta">
+                  <span>📍 ${highlightMatch(e.location || 'Avengers Compound', q)}</span>
+                  <span>&bull;</span>
+                  <span>${highlightMatch(e.description || 'Briefing', q)}</span>
+                </div>
+              </div>
+            </div>
+          `;
+        }).join('')}
+      </div>
+    `;
+  }
+
+  // Group: Incursions
+  if ((searchFilter === 'all' || searchFilter === 'incursions') && matchingIncursions.length > 0) {
+    const list = q ? matchingIncursions : matchingIncursions.slice(0, 3);
+    html += `
+      <div class="search-category-group">
+        <div class="search-category-header">
+          <span>🌌 Multiverse Incursions (${matchingIncursions.length})</span>
+          ${searchFilter === 'all' ? '<span style="font-size:0.62rem;opacity:0.7;">Click to monitor trajectory</span>' : ''}
+        </div>
+        ${list.map(z => `
+          <div class="search-item" onclick="window.__selectOmniIncursion(${z.index})" data-type="incursion" data-id="${z.id}">
+            <div class="search-item-avatar-box" style="font-size:0.9rem;">🪐</div>
+            <div class="search-item-info">
+              <div class="search-item-top">
+                <span class="search-item-title">${highlightMatch(z.reality, q)} &bull; ${highlightMatch(z.name, q)}</span>
+                <span class="danger-badge ${z.danger > 80 ? 'critical' : 'warning'}" style="font-size:0.65rem;padding:1px 6px;">${z.danger}% THREAT</span>
+              </div>
+              <div class="search-item-meta">
+                <span>Sector: ${highlightMatch(z.sector, q)}</span>
+                <span>&bull;</span>
+                <span>Status: ${z.status}</span>
+              </div>
+            </div>
+          </div>
+        `).join('')}
+      </div>
+    `;
+  }
+
+  // Group: Commands / Actions
+  if ((searchFilter === 'all' || searchFilter === 'actions') && matchingCommands.length > 0) {
+    const list = q ? matchingCommands : matchingCommands.slice(0, 5);
+    html += `
+      <div class="search-category-group">
+        <div class="search-category-header">
+          <span>⚡ Command Actions (${matchingCommands.length})</span>
+        </div>
+        ${list.map(c => `
+          <div class="search-item" onclick="window.__runOmniCommand('${c.id}')" data-type="command" data-id="${c.id}">
+            <div class="search-item-avatar-box" style="font-size:0.9rem;">${c.icon}</div>
+            <div class="search-item-info">
+              <div class="search-item-top">
+                <span class="search-item-title">${highlightMatch(c.title, q)}</span>
+                <span class="badge badge-outline" style="font-size:0.65rem;padding:1px 6px;">ACTION</span>
+              </div>
+              <div class="search-item-meta">
+                <span>${highlightMatch(c.desc, q)}</span>
+              </div>
+            </div>
+          </div>
+        `).join('')}
+      </div>
+    `;
+  }
+
+  container.innerHTML = html;
+  searchHighlightIndex = -1;
+}
+
+// Omnisearch action handlers
+window.__selectOmniHero = (heroId) => {
+  const hero = heroes.find(h => h.id === heroId);
+  closeSearchDropdown();
+  if (hero) {
+    playBlip(750);
+    openHeroDossier(hero);
+  }
+};
+
+window.__selectOmniMission = (missionId) => {
+  closeSearchDropdown();
+  switchTab('missions');
+  playBlip(700);
+  setTimeout(() => {
+    const card = document.getElementById(`card-mission-${missionId}`);
+    if (card) {
+      card.scrollIntoView({ behavior: 'smooth', block: 'center' });
+      card.classList.add('search-target-highlight');
+      setTimeout(() => card.classList.remove('search-target-highlight'), 2000);
+    }
+  }, 100);
+};
+
+window.__selectOmniEvent = (eventId) => {
+  closeSearchDropdown();
+  switchTab('calendar');
+  playBlip(700);
+  setTimeout(() => {
+    const ev = events.find(e => e.id === eventId);
+    if (ev) {
+      selectedCalendarDate = new Date(ev.start?.dateTime || ev.start?.date);
+      renderMiniCalendar();
+      renderAgenda();
+      setTimeout(() => {
+        const card = document.getElementById(`card-event-${eventId}`);
+        if (card) {
+          card.scrollIntoView({ behavior: 'smooth', block: 'center' });
+          card.classList.add('search-target-highlight');
+          setTimeout(() => card.classList.remove('search-target-highlight'), 2000);
+        }
+      }, 50);
+    }
+  }, 100);
+};
+
+window.__selectOmniIncursion = (zoneIndex) => {
+  closeSearchDropdown();
+  switchTab('incursions');
+  playShield();
+  selectIncursionZone(zoneIndex);
+};
+
+window.__runOmniCommand = (cmdId) => {
+  closeSearchDropdown();
+  playBlip(750);
+  if (cmdId === 'cmd_arena') switchTab('arena');
+  else if (cmdId === 'cmd_new_hero') openHeroForm();
+  else if (cmdId === 'cmd_new_mission') openMissionForm();
+  else if (cmdId === 'cmd_new_event') openEventForm();
+  else if (cmdId === 'cmd_trailer') {
+    switchTab('dashboard');
+    document.getElementById('trailer-hub-card')?.scrollIntoView({ behavior: 'smooth' });
+  } else if (cmdId === 'cmd_siren') {
+    playAlert();
+    showToast('⚠️ MULTIVERSE RED ALERT INITIATED', 'danger');
+  } else if (cmdId === 'cmd_audio') {
+    const a = toggleAudio();
+    updateAudioUI();
+    showToast(`Audio FX ${a ? 'Activated' : 'Muted'}`, 'info');
+  } else if (cmdId === 'cmd_connect_cal') {
+    openCalendarSettingsModal();
+  } else if (cmdId === 'cmd_analytics') {
+    switchTab('analytics');
+  } else if (cmdId === 'cmd_incursions') {
+    switchTab('incursions');
+  }
+};
+
+window.__clearSearch = () => {
+  searchQuery = '';
+  const input = document.getElementById('global-search');
+  if (input) input.value = '';
+  const clearBtn = document.getElementById('search-clear-btn');
+  if (clearBtn) clearBtn.classList.add('hidden');
+  const dropdown = document.getElementById('search-dropdown');
+  if (dropdown) dropdown.classList.add('hidden');
+  renderHeroes();
+  renderMissions();
+  renderAgenda();
+  renderDashboardMissions();
+};
+
+window.__clearCalFilter = () => {
+  selectedCalendarDate = null;
+  renderMiniCalendar();
+  renderAgenda();
+};
 
 // ═══════════════════════════════════════════════════════════════
 // BUTTON BINDINGS
@@ -628,22 +1103,47 @@ function renderHeroes() {
   const grid = document.getElementById('heroes-grid');
   if (!grid) return;
 
+  const q = searchQuery.toLowerCase();
   const filtered = heroes.filter(h => {
     const matchesFilter = currentFilter === 'all' || h.team === currentFilter;
     const matchesSearch = !searchQuery ||
-      h.name.toLowerCase().includes(searchQuery) ||
-      h.alias.toLowerCase().includes(searchQuery);
+      (h.name && h.name.toLowerCase().includes(q)) ||
+      (h.alias && h.alias.toLowerCase().includes(q)) ||
+      (h.role && h.role.toLowerCase().includes(q)) ||
+      (h.team && h.team.toLowerCase().includes(q)) ||
+      (h.ultimate && h.ultimate.toLowerCase().includes(q)) ||
+      (h.bio && h.bio.toLowerCase().includes(q));
     return matchesFilter && matchesSearch;
   });
 
+  const banner = document.getElementById('heroes-search-banner');
+  if (banner) {
+    if (searchQuery) {
+      banner.classList.remove('hidden');
+      banner.innerHTML = `
+        <div class="search-banner-content">
+          <span>🔍 Operative search active for <span class="search-banner-query">"${escapeHtml(searchQuery)}"</span> &bull; <strong>${filtered.length}</strong> operative${filtered.length === 1 ? '' : 's'} found</span>
+        </div>
+        <button class="btn btn-xs btn-ghost search-banner-btn-clear" onclick="window.__clearSearch()">✕ Clear Filter</button>
+      `;
+    } else {
+      banner.classList.add('hidden');
+    }
+  }
+
   if (filtered.length === 0) {
-    grid.innerHTML = '<div class="empty-state" style="grid-column:1/-1;"><p>No operatives found.</p></div>';
+    grid.innerHTML = `
+      <div class="empty-state" style="grid-column:1/-1;padding:40px 20px;text-align:center;">
+        <p style="font-size:1.1rem;margin-bottom:12px;">No operatives found matching "${escapeHtml(searchQuery)}".</p>
+        <button class="btn btn-sm btn-primary" onclick="window.__clearSearch()">Reset Search & Filter</button>
+      </div>
+    `;
     return;
   }
 
   grid.innerHTML = filtered.map(h => `
-    <div class="hero-card" data-id="${h.id}">
-      <div class="hero-card-header">
+    <div class="hero-card" data-id="${h.id}" id="card-hero-${h.id}">
+      <div class="hero-card-header" onclick="window.__viewHeroDossier('${h.id}')" style="cursor:pointer;" title="Click to inspect operative tactical dossier">
         <div class="hero-card-photo-wrapper">
           <img
             src="${h.image || '/images/characters/doctor-doom.svg'}"
@@ -655,13 +1155,13 @@ function renderHeroes() {
           <span class="hero-emoji-sub">${h.emoji}</span>
         </div>
         <div class="hero-card-identity">
-          <h4 class="hero-card-name">${h.name}</h4>
-          <span class="hero-card-alias">${h.alias}</span>
-          <span class="hero-card-role">${h.role || 'Operative'}</span>
+          <h4 class="hero-card-name">${highlightMatch(h.name, searchQuery)}</h4>
+          <span class="hero-card-alias">${highlightMatch(h.alias, searchQuery)}</span>
+          <span class="hero-card-role">${highlightMatch(h.role || 'Operative', searchQuery)}</span>
         </div>
         <span class="badge badge-${h.team}">${h.team}</span>
       </div>
-      ${h.ultimate ? `<div class="hero-ultimate-badge">⚡ <strong>Ultimate:</strong> ${h.ultimate}</div>` : ''}
+      ${h.ultimate ? `<div class="hero-ultimate-badge">⚡ <strong>Ultimate:</strong> ${highlightMatch(h.ultimate, searchQuery)}</div>` : ''}
       <div class="hero-card-stats">
         <div class="stat-bar-group">
           <div class="stat-bar-label"><span>Power</span><span>${h.power}</span></div>
@@ -678,6 +1178,7 @@ function renderHeroes() {
       </div>
       <div class="hero-card-actions">
         <button class="btn btn-sm btn-primary-outline" onclick="window.__duelHero('${h.id}')">⚔️ Duel in Arena</button>
+        <button class="btn btn-sm btn-ghost" onclick="window.__viewHeroDossier('${h.id}')">Dossier</button>
         <button class="btn btn-sm btn-ghost" onclick="window.__editHero('${h.id}')">Edit</button>
         <button class="btn btn-sm btn-ghost" onclick="window.__deleteHero('${h.id}')">Remove</button>
       </div>
@@ -686,6 +1187,76 @@ function renderHeroes() {
 
   attachCardTiltEffects();
 }
+
+function openHeroDossier(hero) {
+  if (!hero) return;
+  const html = `
+    <div class="hero-dossier-wrapper">
+      <div class="hero-dossier-top">
+        <img
+          src="${hero.image || '/images/characters/doctor-doom.svg'}"
+          alt="${hero.name}"
+          class="hero-dossier-photo"
+          onerror="this.onerror=null;this.src='/images/characters/doctor-doom.svg';"
+        />
+        <div class="hero-dossier-identity">
+          <div style="display:flex;align-items:center;gap:8px;">
+            <h3>${hero.name}</h3>
+            <span class="badge badge-${hero.team}">${hero.team}</span>
+          </div>
+          <span class="dossier-alias">${hero.alias} &bull; ${hero.role || 'Tactical Operative'}</span>
+          <span class="badge badge-outline">${hero.status === 'active' ? '🟢 Ready for Deployment' : '🔴 Standby'}</span>
+        </div>
+      </div>
+
+      <div class="hero-dossier-stats">
+        <div class="hero-dossier-stat-col">
+          <span class="hero-dossier-stat-lbl">Combat Power</span>
+          <span class="hero-dossier-stat-val">${hero.power}</span>
+        </div>
+        <div class="hero-dossier-stat-col">
+          <span class="hero-dossier-stat-lbl">Agility / Speed</span>
+          <span class="hero-dossier-stat-val">${hero.speed || 60}</span>
+        </div>
+        <div class="hero-dossier-stat-col">
+          <span class="hero-dossier-stat-lbl">Tactical Intel</span>
+          <span class="hero-dossier-stat-val">${hero.intel || 70}</span>
+        </div>
+      </div>
+
+      ${hero.ultimate ? `
+        <div class="hero-dossier-ultimate">
+          ⚡ <strong>Signature Ultimate:</strong> ${hero.ultimate}
+        </div>
+      ` : ''}
+
+      <div class="hero-dossier-lore">
+        <strong>Operative Briefing:</strong> ${hero.bio || 'High-priority operative operating under Avengers Multiverse Command.'}
+      </div>
+
+      <div class="form-actions" style="margin-top:var(--space-sm);">
+        <button class="btn btn-primary" onclick="window.__duelHero('${hero.id}'); closeModal();">
+          ⚔️ Duel in Arena
+        </button>
+        <button class="btn btn-ghost" onclick="window.__editHero('${hero.id}'); closeModal();">
+          ✏️ Edit Profile
+        </button>
+        <button class="btn btn-ghost" onclick="closeModal()">
+          Close
+        </button>
+      </div>
+    </div>
+  `;
+  openModal(html);
+}
+
+window.__viewHeroDossier = (id) => {
+  const hero = heroes.find(h => h.id === id);
+  if (hero) {
+    playBlip(700);
+    openHeroDossier(hero);
+  }
+};
 
 window.__duelHero = (id) => {
   selectFighter1(id);
@@ -743,31 +1314,57 @@ function initDoomParallax() {
 // ═══════════════════════════════════════════════════════════════
 function renderMissions() {
   const statuses = ['planning', 'active', 'critical', 'completed'];
+  let totalMatches = 0;
 
   statuses.forEach(status => {
     const container = document.getElementById(`kanban-${status}`);
     const countEl = document.getElementById(`count-${status}`);
     if (!container) return;
 
-    const items = missions.filter(m => m.status === status);
+    const items = missions.filter(m => {
+      if (m.status !== status) return false;
+      if (!searchQuery) return true;
+      const q = searchQuery.toLowerCase();
+      return (
+        (m.title && m.title.toLowerCase().includes(q)) ||
+        (m.description && m.description.toLowerCase().includes(q)) ||
+        (m.assignee && m.assignee.toLowerCase().includes(q)) ||
+        (m.priority && m.priority.toLowerCase().includes(q))
+      );
+    });
+
+    totalMatches += items.length;
     if (countEl) countEl.textContent = items.length;
+
+    if (items.length === 0) {
+      container.innerHTML = searchQuery
+        ? '<div class="kanban-empty-match"><small>No matching missions</small></div>'
+        : '<div class="kanban-empty-match"><small>Drop tactical cards here</small></div>';
+      return;
+    }
 
     container.innerHTML = items.map(m => {
       const gcalUrl = getGoogleCalendarUrl(m);
       return `
-        <div class="kanban-card" data-id="${m.id}">
-          <div class="kanban-card-title">${m.title}</div>
-          <div class="kanban-card-desc">${m.description}</div>
+        <div class="kanban-card" data-id="${m.id}" id="card-mission-${m.id}">
+          <div class="kanban-card-title">${highlightMatch(m.title, searchQuery)}</div>
+          <div class="kanban-card-desc">${highlightMatch(m.description, searchQuery)}</div>
           <div class="kanban-card-footer">
             <span class="kanban-card-priority priority-${m.priority}">${m.priority}</span>
-            <span class="kanban-card-assignee">${m.assignee}</span>
+            <span class="kanban-card-assignee">👤 ${highlightMatch(m.assignee, searchQuery)}</span>
           </div>
           <div class="cal-quick-actions">
             <a href="${gcalUrl}" target="_blank" class="btn-cal-link" title="Add this mission to Google Calendar">
-              📅 Add to Google Cal
+              📅 Cal
             </a>
             <button class="btn-cal-ics" onclick="window.__downloadMissionIcs('${m.id}')" title="Download .ics file">
               📥 .ics
+            </button>
+            <button class="btn-mission-action btn-edit-mission" onclick="window.__editMission('${m.id}')" title="Edit Mission">
+              ✏️ Edit
+            </button>
+            <button class="btn-mission-action btn-delete-mission" onclick="window.__deleteMission('${m.id}')" title="Delete Mission">
+              🗑️
             </button>
           </div>
         </div>
@@ -795,7 +1392,44 @@ function renderMissions() {
       }
     });
   });
+
+  const banner = document.getElementById('missions-search-banner');
+  if (banner) {
+    if (searchQuery) {
+      banner.classList.remove('hidden');
+      banner.innerHTML = `
+        <div class="search-banner-content">
+          <span>🔍 Filtering missions by <span class="search-banner-query">"${escapeHtml(searchQuery)}"</span> &bull; <strong>${totalMatches}</strong> matching tactical records</span>
+        </div>
+        <button class="btn btn-xs btn-ghost search-banner-btn-clear" onclick="window.__clearSearch()">✕ Clear Filter</button>
+      `;
+    } else {
+      banner.classList.add('hidden');
+    }
+  }
 }
+
+window.__editMission = (id) => {
+  const mission = missions.find(m => m.id === id);
+  if (mission) {
+    playBlip(650);
+    openMissionForm(mission);
+  }
+};
+
+window.__deleteMission = (id) => {
+  const mission = missions.find(m => m.id === id);
+  if (!mission) return;
+  if (confirm(`Decommission mission "${mission.title}"?`)) {
+    missions = missions.filter(m => m.id !== id);
+    saveData(STORAGE_KEYS.MISSIONS, missions);
+    renderMissions();
+    renderDashboardMissions();
+    updateStats();
+    playAlert();
+    showToast(`Mission "${mission.title}" decommissioned.`, 'info');
+  }
+};
 
 window.__downloadMissionIcs = (id) => {
   const mission = missions.find(m => m.id === id);
@@ -910,8 +1544,35 @@ function renderAgenda() {
     if (title) title.textContent = "Today's Agenda";
   }
 
+  // Filter by search query if active
+  if (searchQuery) {
+    const q = searchQuery.toLowerCase();
+    filtered = filtered.filter(e =>
+      (e.summary && e.summary.toLowerCase().includes(q)) ||
+      (e.description && e.description.toLowerCase().includes(q)) ||
+      (e.location && e.location.toLowerCase().includes(q))
+    );
+  }
+
+  const banner = document.getElementById('calendar-search-banner');
+  if (banner) {
+    if (searchQuery) {
+      banner.classList.remove('hidden');
+      banner.innerHTML = `
+        <div class="search-banner-content">
+          <span>🔍 Event search active for <span class="search-banner-query">"${escapeHtml(searchQuery)}"</span> &bull; <strong>${filtered.length}</strong> briefing${filtered.length === 1 ? '' : 's'} matching</span>
+        </div>
+        <button class="btn btn-xs btn-ghost search-banner-btn-clear" onclick="window.__clearSearch()">✕ Clear Filter</button>
+      `;
+    } else {
+      banner.classList.add('hidden');
+    }
+  }
+
   if (filtered.length === 0) {
-    container.innerHTML = '<div class="empty-state"><p>No operations scheduled for this date.</p></div>';
+    container.innerHTML = searchQuery
+      ? `<div class="empty-state"><p>No briefings found matching "${escapeHtml(searchQuery)}".</p><button class="btn btn-sm btn-primary" onclick="window.__clearSearch()" style="margin-top:8px;">Reset Search</button></div>`
+      : '<div class="empty-state"><p>No operations scheduled for this date.</p></div>';
     return;
   }
 
@@ -921,11 +1582,11 @@ function renderAgenda() {
     const gcalUrl = getGoogleCalendarUrl(e);
 
     return `
-      <div class="agenda-item" data-id="${e.id}">
+      <div class="agenda-item" data-id="${e.id}" id="card-event-${e.id}">
         <div class="agenda-time">${timeStr}</div>
         <div class="agenda-info">
-          <div class="agenda-title">${e.summary}</div>
-          <div class="agenda-desc">${e.description || 'Command operations event.'}</div>
+          <div class="agenda-title">${highlightMatch(e.summary, searchQuery)}</div>
+          <div class="agenda-desc">${highlightMatch(e.description || 'Command operations event.', searchQuery)}</div>
           <div class="cal-quick-actions">
             <a href="${gcalUrl}" target="_blank" class="btn-cal-link">
               📅 Open Google Cal
