@@ -22,10 +22,13 @@ import {
 } from './modules/audio.js';
 import { initIncursions, selectIncursionZone } from './modules/incursions.js';
 import { initArena, updateArenaHeroes, selectFighter1 } from './modules/arena.js';
+import { initLoader, replayLoader } from './modules/loader.js';
 import {
   drawThreatGauge, initReadinessChart,
   initMissionTrendChart, initPowerDistributionChart,
   initThreatCategoriesChart, initHeroRadarChart, initPriorityChart,
+  initIncursionMatrixChart, initResourceAllocationChart,
+  triggerDoomThreatPulse, updateChartsTheme
 } from './modules/charts.js';
 import { HEROES as DEFAULT_HEROES, MISSIONS as DEFAULT_MISSIONS, INCURSION_ZONES } from './data/mock-data.js';
 import Sortable from 'sortablejs';
@@ -41,6 +44,19 @@ let searchQuery = '';
 let currentCalendarDate = new Date();
 let selectedCalendarDate = null;
 let countdownInterval = null;
+let currentAnalyticsTimeframe = 'all';
+let isLiveTelemetryActive = true;
+let liveTelemetryTimer = null;
+let currentAnomalyFilter = 'all';
+let anomalyLogItems = [
+  { time: '10:18:42', tag: 'critical', text: 'Earth-838 collision horizon expanded by 340 micro-parsecs.' },
+  { time: '10:14:05', tag: 'warning', text: 'Latverian Doombot cyber-swarm detected probing Sector 4 shields.' },
+  { time: '10:09:22', tag: 'intel', text: 'Doctor Strange completed multiversal astral projection scan (14M outcomes).' },
+  { time: '10:02:18', tag: 'success', text: 'Wakandan Vibranium harmonic barrier synchronized at 100% capacity.' },
+  { time: '09:55:40', tag: 'intel', text: 'Wolverine and Storm established forward recon camp on Battleworld.' },
+  { time: '09:41:12', tag: 'warning', text: 'Pym quantum realm resonance frequency fluctuation detected.' },
+  { time: '09:30:05', tag: 'intel', text: 'Scarlet Witch stabilized hex boundary around Earth-616 anchor reality.' }
+];
 
 // ═══════════════════════════════════════════════════════════════
 // INITIALIZATION
@@ -82,6 +98,13 @@ document.addEventListener('DOMContentLoaded', () => {
   }
   missions = loadData(STORAGE_KEYS.MISSIONS, DEFAULT_MISSIONS);
 
+  // Themed boot loading screen
+  initLoader({
+    onComplete: () => {
+      showToast('Systems nominal. Welcome to the Doomsday Command Center, Avenger.', 'info');
+    }
+  });
+
   // Core modules
   initParticles();
   initThemes();
@@ -102,6 +125,10 @@ document.addEventListener('DOMContentLoaded', () => {
 
   // Audio system state
   updateAudioUI();
+
+  // Analytics Controls & Live Anomaly Stream
+  initAnalyticsControls();
+  initAnomalyFeed();
 
   // Calendar setup
   initCalendar({
@@ -128,16 +155,14 @@ document.addEventListener('DOMContentLoaded', () => {
   setTimeout(() => {
     drawThreatGauge(85);
     initReadinessChart();
-    initMissionTrendChart(missions);
-    initPowerDistributionChart(heroes);
-    initThreatCategoriesChart();
-    initHeroRadarChart(heroes);
-    initPriorityChart(missions);
+    renderAnalyticsView();
     renderMiniCalendar();
   }, 100);
 
-  // Welcome toast
-  showToast('Welcome to the Doomsday Command Center, Avenger.', 'info');
+  // Listen to theme switches to re-render charts dynamically
+  window.addEventListener('themechange', () => {
+    updateChartsTheme();
+  });
 });
 
 // ═══════════════════════════════════════════════════════════════
@@ -162,13 +187,253 @@ function switchTab(tab) {
   // Lazy-init charts when analytics tab opens
   if (tab === 'analytics') {
     setTimeout(() => {
-      initMissionTrendChart(missions);
-      initPowerDistributionChart(heroes);
-      initThreatCategoriesChart();
-      initHeroRadarChart(heroes);
-      initPriorityChart(missions);
+      renderAnalyticsView();
     }, 50);
   }
+}
+
+// ═══════════════════════════════════════════════════════════════
+// TACTICAL ANALYTICS ENGINE & CONTROLS
+// ═══════════════════════════════════════════════════════════════
+function renderAnalyticsView() {
+  const sel1 = document.getElementById('radar-hero-1-select');
+  const sel2 = document.getElementById('radar-hero-2-select');
+  const h1 = sel1 ? sel1.value : 'h1';
+  const h2 = sel2 ? sel2.value : 'h3';
+
+  initMissionTrendChart(missions, currentAnalyticsTimeframe);
+  initHeroRadarChart(heroes, h1, h2);
+  initIncursionMatrixChart();
+  initPowerDistributionChart(heroes);
+  initThreatCategoriesChart();
+  initPriorityChart(missions);
+  initResourceAllocationChart();
+}
+
+function initAnalyticsControls() {
+  // Populate hero selectors for dynamic radar comparison
+  const sel1 = document.getElementById('radar-hero-1-select');
+  const sel2 = document.getElementById('radar-hero-2-select');
+
+  if (sel1 && sel2) {
+    const optionsHtml = heroes.map(h => 
+      `<option value="${h.id}">${h.emoji || '🦸'} ${h.name} (PWR: ${h.power || 0})</option>`
+    ).join('');
+
+    sel1.innerHTML = optionsHtml;
+    sel2.innerHTML = optionsHtml;
+
+    // Default: Iron Man (h1) vs Thor (h3)
+    sel1.value = heroes.find(h => h.id === 'h1')?.id || heroes[0]?.id;
+    sel2.value = heroes.find(h => h.id === 'h3')?.id || heroes[1]?.id;
+
+    const onRadarChange = () => {
+      playBlip(750);
+      initHeroRadarChart(heroes, sel1.value, sel2.value);
+    };
+
+    sel1.addEventListener('change', onRadarChange);
+    sel2.addEventListener('change', onRadarChange);
+  }
+
+  // Timeframe filter pill group
+  document.querySelectorAll('#analytics-timeframe-group .timeframe-btn').forEach(btn => {
+    btn.addEventListener('click', () => {
+      playBlip(680);
+      document.querySelectorAll('#analytics-timeframe-group .timeframe-btn').forEach(b => b.classList.remove('active'));
+      btn.classList.add('active');
+      currentAnalyticsTimeframe = btn.dataset.timeframe;
+
+      const tagEl = document.getElementById('trend-timeframe-tag');
+      if (tagEl) {
+        tagEl.textContent = `TIMEFRAME: ${btn.textContent.toUpperCase()}`;
+      }
+
+      initMissionTrendChart(missions, currentAnalyticsTimeframe);
+    });
+  });
+
+  // Threat Spike simulation button
+  const pulseBtn = document.getElementById('btn-doom-pulse');
+  if (pulseBtn) {
+    pulseBtn.addEventListener('click', () => {
+      const isSpike = triggerDoomThreatPulse();
+      const threatVal = document.getElementById('kpi-threat-val');
+      const threatBar = document.getElementById('kpi-threat-bar');
+
+      if (isSpike) {
+        playAlert();
+        if (threatVal) threatVal.textContent = '99.4%';
+        if (threatBar) threatBar.style.width = '99.4%';
+        pulseBtn.innerHTML = `
+          <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"/></svg>
+          <span>Deactivate Surge</span>
+        `;
+        pulseBtn.classList.add('surge-active');
+        addAnomalyEntry('critical', 'LATVERIA SPIKE: Victor Von Doom Beyonder Siphon Overload (+48,000 TW)!');
+        showToast('CRITICAL: Doctor Doom cosmic siphon resonance spike detected!', 'danger');
+      } else {
+        playSuccess();
+        if (threatVal) threatVal.textContent = '94.8%';
+        if (threatBar) threatBar.style.width = '94.8%';
+        pulseBtn.innerHTML = `
+          <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"/></svg>
+          <span>Simulate Threat Spike</span>
+        `;
+        pulseBtn.classList.remove('surge-active');
+        addAnomalyEntry('success', 'CONTAINMENT RESTORED: Siphon dampened by Scarlet Witch hex harmonic.');
+        showToast('Energy surge neutralized. Telemetry stabilized.', 'success');
+      }
+    });
+  }
+
+  // Toggle Live Telemetry auto-stream
+  const liveToggle = document.getElementById('btn-toggle-live-telemetry');
+  if (liveToggle) {
+    liveToggle.addEventListener('click', () => {
+      isLiveTelemetryActive = !isLiveTelemetryActive;
+      playBlip(620);
+      const dot = liveToggle.querySelector('.live-dot');
+      const label = document.getElementById('live-stream-label');
+      if (dot) dot.classList.toggle('active', isLiveTelemetryActive);
+      if (label) label.textContent = `Live Feed: ${isLiveTelemetryActive ? 'ON' : 'OFF'}`;
+      showToast(`Telemetry streaming ${isLiveTelemetryActive ? 'resumed' : 'paused'}.`, 'info');
+    });
+  }
+
+  // Export Tactical Dossier
+  const exportBtn = document.getElementById('btn-export-dossier');
+  if (exportBtn) {
+    exportBtn.addEventListener('click', () => {
+      playSuccess();
+      exportTacticalDossier();
+    });
+  }
+
+  // Reboot System Boot Loader
+  const rebootBtn = document.getElementById('btn-reboot-loader');
+  if (rebootBtn) {
+    rebootBtn.addEventListener('click', () => {
+      replayLoader(() => {
+        showToast('System diagnostics complete. All command protocols nominal.', 'success');
+      });
+    });
+  }
+
+  // Anomaly Filter Chips
+  document.querySelectorAll('#anomaly-filter-chips .chip-btn').forEach(btn => {
+    btn.addEventListener('click', () => {
+      playBlip(600);
+      document.querySelectorAll('#anomaly-filter-chips .chip-btn').forEach(b => b.classList.remove('active'));
+      btn.classList.add('active');
+      currentAnomalyFilter = btn.dataset.filter;
+      renderAnomalyFeed();
+    });
+  });
+}
+
+function exportTacticalDossier() {
+  const dateStr = new Date().toISOString();
+  const topHero = [...heroes].sort((a, b) => (b.power || 0) - (a.power || 0))[0];
+
+  const content = `===================================================================
+S.H.I.E.L.D. MULTIVERSE TACTICAL INTELLIGENCE BRIEFING // OMEGA CLEARANCE
+PROJECT: AVENGERS: DOOMSDAY COMMAND TELEMETRY
+GENERATED: ${dateStr}
+===================================================================
+
+[1. STRATEGIC THREAT ASSESSMENT]
+- Primary Apex Threat: Doctor Victor Von Doom (God Emperor / Latveria)
+- Global Multiverse Threat Index: 94.8% [CRITICAL LATVERIAN RED ALERT]
+- Cosmic Energy Siphon Output: 98,420 Terawatts (Beyonder Resonance)
+- Current Victory Probability: 38.4% (Condition: Wanda Hex-Inversion Matrix)
+
+[2. OPERATIVE COMBAT READINESS]
+- Total Registered Operatives: ${heroes.length}
+- Combat Ready: 10
+- Medical Recovery: 2
+- Standby / Recon: 1
+- Apex Power Operative: ${topHero ? topHero.name : 'Doctor Doom'} (${topHero ? topHero.power : 100} Power Rating)
+
+[3. MULTIVERSE INCURSION COLLISION HORIZONS]
+${INCURSION_ZONES.map(z => `* Reality: ${z.reality} | Threat: ${z.danger}% | Status: ${z.status} | Coords: ${z.coordinates}`).join('\n')}
+
+[4. MISSION STATUS SUMMARY]
+- High Priority (Critical): ${missions.filter(m => m.priority === 'high').length}
+- Medium Priority: ${missions.filter(m => m.priority === 'medium').length}
+- Low / Recon: ${missions.filter(m => m.priority === 'low').length}
+
+[5. PLANETARY DEFENSE ASSETS]
+- Vibranium Harmonic Shield Grid: 82% Deployed
+- Stark Nanotech Defense Network: 94% Deployed
+- Asgardian Uru Conduit Array: 76% Deployed
+- Pym Quantum Reserve Batteries: 88% Deployed
+
+AUTHENTICATION CODE: SHIELD-OMEGA-DOOMSDAY-7729-ALPHA
+STATUS: EYES ONLY // DESTROY AFTER READING
+===================================================================`;
+
+  const blob = new Blob([content], { type: 'text/plain;charset=utf-8' });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = `SHIELD_TACTICAL_DOSSIER_${new Date().toISOString().slice(0, 10)}.txt`;
+  document.body.appendChild(a);
+  a.click();
+  document.body.removeChild(a);
+  URL.revokeObjectURL(url);
+  showToast('S.H.I.E.L.D. Tactical Dossier exported successfully.', 'success');
+}
+
+function initAnomalyFeed() {
+  renderAnomalyFeed();
+
+  // Dynamic simulation ticker
+  const DYNAMIC_EVENTS = [
+    { tag: 'critical', text: 'Quantum flux spike detected near Earth-838 horizon.' },
+    { tag: 'warning', text: 'Latverian diplomatic transmission encrypted with temporal cipher.' },
+    { tag: 'intel', text: 'JARVIS rerouted 240 MW from Stark satellite relay to NYC perimeter.' },
+    { tag: 'success', text: 'Thor intercepted cosmic debris field in quadrant 7.' },
+    { tag: 'intel', text: 'Captain America completed tactical synchronization with X-Men division.' },
+    { tag: 'warning', text: 'Dark magic resonance detected in Kamar-Taj perimeter sensors.' },
+    { tag: 'intel', text: 'Spider-Man confirmed civilian evacuation in Sector 7 complete.' }
+  ];
+
+  clearInterval(liveTelemetryTimer);
+  liveTelemetryTimer = setInterval(() => {
+    if (!isLiveTelemetryActive) return;
+    const randomEvent = DYNAMIC_EVENTS[Math.floor(Math.random() * DYNAMIC_EVENTS.length)];
+    const now = new Date();
+    const timeStr = now.toTimeString().split(' ')[0];
+    anomalyLogItems.unshift({ time: timeStr, tag: randomEvent.tag, text: randomEvent.text });
+    if (anomalyLogItems.length > 25) anomalyLogItems.pop();
+    renderAnomalyFeed();
+  }, 7500);
+}
+
+function addAnomalyEntry(tag, text) {
+  const now = new Date();
+  const timeStr = now.toTimeString().split(' ')[0];
+  anomalyLogItems.unshift({ time: timeStr, tag, text });
+  if (anomalyLogItems.length > 25) anomalyLogItems.pop();
+  renderAnomalyFeed();
+}
+
+function renderAnomalyFeed() {
+  const container = document.getElementById('analytics-anomaly-feed');
+  if (!container) return;
+
+  const filtered = currentAnomalyFilter === 'all'
+    ? anomalyLogItems
+    : anomalyLogItems.filter(item => item.tag === currentAnomalyFilter);
+
+  container.innerHTML = filtered.map(item => `
+    <div class="anomaly-log-row">
+      <span class="anomaly-time">[${item.time}]</span>
+      <span class="anomaly-tag tag-${item.tag}">${item.tag.toUpperCase()}</span>
+      <span class="anomaly-desc">${item.text}</span>
+    </div>
+  `).join('');
 }
 
 // ═══════════════════════════════════════════════════════════════

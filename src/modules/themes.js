@@ -61,4 +61,6 @@ function applyTheme(theme) {
   document.querySelectorAll('.theme-option').forEach(btn => {
     btn.classList.toggle('active', btn.dataset.theme === theme);
   });
+  // Notify listeners that theme has changed
+  window.dispatchEvent(new CustomEvent('themechange', { detail: { theme } }));
 }

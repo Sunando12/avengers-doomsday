@@ -10,16 +10,18 @@
 
 ## ✨ Features
 
-- **5 Premium Themes** — Doomsday Dark, Infinity Stones, Multiverse Madness, Stark Tech, Asgardian Gold
-- **Interactive Particle Background** — Canvas-based floating nodes that react to cursor movement with a toggle for reduced motion
-- **Hero Roster** — Add, edit, delete, filter, and search heroes with beautiful glassmorphic cards
-- **Mission Control (Kanban)** — Drag-and-drop mission board with planning, active, critical, and completed columns
-- **Interactive Charts** — Threat gauge, readiness doughnut, mission trends, power distribution, radar comparisons, and more (Chart.js)
-- **Google Calendar Integration** — OAuth 2.0 flow to fetch, create, and delete events on your Google Calendar
-- **Demo Mode** — Fully functional with mock data when no Google credentials are configured
-- **Local Persistence** — All data (heroes, missions, events, theme) saved to localStorage
-- **Responsive Design** — Mobile-first layout that works on phones, tablets, and desktops
-- **Toast Notifications & Modal Dialogs** — Instant user feedback for all actions
+- **Themed Boot Loading Screen** — Cinematic Marvel HUD boot sequence featuring rotating holographic gyro rings, real-time diagnostic telemetry stream, synthesized audio frequencies, progress interpolation, and keyboard shortcuts.
+- **Enhanced Tactical Analytics & Multiverse Telemetry** — Mission-grade analytics hub with 4 glowing KPI metric cards, dynamic dual-hero comparison radar, Multiverse Incursion bubble matrix, multi-timeline trajectory filters (`All Time`, `30D`, `7D`, `Battleworld`), planetary defense resource allocation, simulated Doctor Doom threat surges, live streaming telemetry feeds, and exportable S.H.I.E.L.D. dossiers.
+- **5 Premium Dynamic Themes** — Doomsday Dark, Infinity Stones, Multiverse Madness, Stark Tech, Asgardian Gold with instant chart re-theming and adaptive color palettes.
+- **Interactive Particle Background** — Canvas-based floating nodes that react to cursor movement with a toggle for reduced motion.
+- **Hero Roster** — Add, edit, delete, filter, and search heroes with beautiful glassmorphic cards.
+- **Mission Control (Kanban)** — Drag-and-drop mission board with planning, active, critical, and completed columns.
+- **Google Calendar Integration** — OAuth 2.0 flow to fetch, create, and delete events on your Google Calendar.
+- **Demo Mode** — Fully functional with mock data when no Google credentials are configured.
+- **Local Persistence** — All data (heroes, missions, events, theme) saved to localStorage.
+- **Responsive Design** — Mobile-first layout that works on phones, tablets, and desktops.
+- **Tactical Audio Synthesizer** — Procedural Web Audio API sound effects (boot hums, blips, alarms, confirmations) with instant mute toggle.
+- **Toast Notifications & Modal Dialogs** — Instant user feedback for all actions.
 
 ---
 

@@ -172,3 +172,88 @@ export function playShield() {
     osc.stop(now + 0.25);
   } catch { /* ignore */ }
 }
+
+/**
+ * Play futuristic boot-up harmonic hum
+ */
+export function playBootHum() {
+  if (!isSoundEnabled) return;
+  try {
+    const ctx = getAudioContext();
+    if (!ctx) return;
+    const now = ctx.currentTime;
+    const osc = ctx.createOscillator();
+    const gain = ctx.createGain();
+
+    osc.type = 'sawtooth';
+    osc.frequency.setValueAtTime(65.41, now); // C2
+    osc.frequency.exponentialRampToValueAtTime(261.63, now + 1.2); // C4
+
+    gain.gain.setValueAtTime(0.01, now);
+    gain.gain.linearRampToValueAtTime(0.09, now + 0.5);
+    gain.gain.exponentialRampToValueAtTime(0.001, now + 1.5);
+
+    osc.connect(gain);
+    gain.connect(ctx.destination);
+
+    osc.start(now);
+    osc.stop(now + 1.5);
+  } catch { /* ignore */ }
+}
+
+/**
+ * Play system initialized confirmation chord
+ */
+export function playBootChime() {
+  if (!isSoundEnabled) return;
+  try {
+    const ctx = getAudioContext();
+    if (!ctx) return;
+    const now = ctx.currentTime;
+    const chords = [392.00, 523.25, 659.25, 783.99, 1046.50]; // G4, C5, E5, G5, C6
+
+    chords.forEach((freq, idx) => {
+      const osc = ctx.createOscillator();
+      const gain = ctx.createGain();
+      osc.type = 'triangle';
+      osc.frequency.setValueAtTime(freq, now + idx * 0.05);
+
+      gain.gain.setValueAtTime(0.06, now + idx * 0.05);
+      gain.gain.exponentialRampToValueAtTime(0.0005, now + idx * 0.05 + 0.6);
+
+      osc.connect(gain);
+      gain.connect(ctx.destination);
+
+      osc.start(now + idx * 0.05);
+      osc.stop(now + idx * 0.05 + 0.6);
+    });
+  } catch { /* ignore */ }
+}
+
+/**
+ * Play high-speed data stream tick
+ */
+export function playDataTick() {
+  if (!isSoundEnabled) return;
+  try {
+    const ctx = getAudioContext();
+    if (!ctx) return;
+    const now = ctx.currentTime;
+    const osc = ctx.createOscillator();
+    const gain = ctx.createGain();
+
+    osc.type = 'sine';
+    osc.frequency.setValueAtTime(1400, now);
+    osc.frequency.exponentialRampToValueAtTime(1800, now + 0.02);
+
+    gain.gain.setValueAtTime(0.03, now);
+    gain.gain.exponentialRampToValueAtTime(0.0005, now + 0.025);
+
+    osc.connect(gain);
+    gain.connect(ctx.destination);
+
+    osc.start(now);
+    osc.stop(now + 0.025);
+  } catch { /* ignore */ }
+}
+

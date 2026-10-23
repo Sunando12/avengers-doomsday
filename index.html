@@ -14,6 +14,84 @@
   <script src="https://apis.google.com/js/api.js" async defer></script>
 </head>
 <body>
+  <!-- =====================================================
+       THEMED BOOT LOADING SCREEN (TACTICAL HUD INITIALIZATION)
+       ===================================================== -->
+  <div id="theme-loader" class="theme-loader-overlay" role="dialog" aria-modal="true" aria-label="System Boot Loader">
+    <div class="loader-backdrop"></div>
+    <div class="loader-scanlines"></div>
+    <div class="loader-grid-bg"></div>
+
+    <div class="loader-content-wrap">
+      <!-- High-Tech Holographic Gyro Core -->
+      <div class="loader-hologram-stage">
+        <div class="hud-ring ring-outer"></div>
+        <div class="hud-ring ring-middle"></div>
+        <div class="hud-ring ring-inner"></div>
+        <div class="hud-ring ring-pulse"></div>
+
+        <!-- Center Doomsday / Avengers Emblem -->
+        <div class="loader-core-emblem">
+          <svg viewBox="0 0 100 100" class="core-svg-emblem">
+            <defs>
+              <linearGradient id="emblemGlow" x1="0%" y1="0%" x2="100%" y2="100%">
+                <stop offset="0%" stop-color="var(--accent-secondary)" />
+                <stop offset="100%" stop-color="var(--accent-primary)" />
+              </linearGradient>
+            </defs>
+            <!-- Outer Hexagon / Latverian Shield -->
+            <polygon points="50,4 92,26 92,74 50,96 8,74 8,26" fill="none" stroke="url(#emblemGlow)" stroke-width="2.5" class="shield-polygon"/>
+            <!-- Inner Avengers Arrowhead -->
+            <polygon points="50,15 82,78 18,78" fill="none" stroke="currentColor" stroke-width="3" opacity="0.4"/>
+            <!-- Bold 'A' -->
+            <text x="50" y="69" text-anchor="middle" font-family="'Orbitron', sans-serif" font-size="34" font-weight="900" fill="url(#emblemGlow)">A</text>
+            <!-- Doctor Doom Crest Arc -->
+            <circle cx="50" cy="50" r="38" fill="none" stroke="var(--accent-primary)" stroke-width="1.5" stroke-dasharray="6 4" class="dash-orbit"/>
+          </svg>
+        </div>
+      </div>
+
+      <!-- Telemetry Titles & System Status -->
+      <div class="loader-brand-block">
+        <div class="loader-sys-tag">S.H.I.E.L.D. // LATVERIA SECURE PROTOCOL v8.4</div>
+        <h2 class="loader-main-title">AVENGERS : DOOMSDAY</h2>
+        <div class="loader-sub-tag">TACTICAL COMMAND NETWORK • MULTIVERSE DEFENSE GRID</div>
+      </div>
+
+      <!-- Live Segmented Progress Bar -->
+      <div class="loader-progress-section">
+        <div class="loader-progress-labels">
+          <span id="loader-status-text" class="status-glitch-text">INITIALIZING QUANTUM ENCRYPTION...</span>
+          <span id="loader-progress-pct" class="progress-pct-readout">0%</span>
+        </div>
+        <div class="loader-progress-track">
+          <div id="loader-progress-bar" class="loader-progress-fill"></div>
+          <div class="progress-glow-point"></div>
+        </div>
+      </div>
+
+      <!-- Diagnostic Telemetry Log Terminal -->
+      <div class="loader-terminal-container">
+        <div class="loader-terminal-header">
+          <span class="terminal-dot"></span>
+          <span class="terminal-title">DIAGNOSTIC TELEMETRY STREAM</span>
+          <span class="terminal-codec">ENC: AES-512-QUANTUM</span>
+        </div>
+        <div id="loader-terminal-stream" class="loader-terminal-stream">
+          <!-- Populated dynamically by loader.js -->
+        </div>
+      </div>
+
+      <!-- Loader Footer Controls -->
+      <div class="loader-footer-bar">
+        <span class="loader-shortcut-hint">Press <kbd class="loader-kbd">SPACE</kbd> or <kbd class="loader-kbd">ENTER</kbd> to bypass</span>
+        <button id="loader-skip-btn" class="loader-skip-action-btn" type="button">
+          Skip Boot Sequence ››
+        </button>
+      </div>
+    </div>
+  </div>
+
   <!-- Particle Canvas Background -->
   <canvas id="particle-canvas"></canvas>
 
@@ -628,49 +706,255 @@
 
       <!-- ===== ANALYTICS TAB ===== -->
       <section class="tab-panel" id="panel-analytics">
-        <div class="panel-header">
-          <h2 class="panel-title">Tactical Analytics</h2>
-        </div>
-        <div class="analytics-grid">
-          <div class="glass-card span-2">
-            <div class="card-header">
-              <h3 class="card-title">Mission Completion Trend</h3>
+        <!-- Enhanced Header with Control Toolbar -->
+        <div class="panel-header analytics-header-flex">
+          <div>
+            <div class="panel-badge-row">
+              <span class="telemetry-badge-live"><span class="badge-dot-pulse"></span> S.H.I.E.L.D. ORBITAL SATELLITE TELEMETRY</span>
+              <span class="telemetry-badge-protocol">SECURITY LEVEL: OMEGA</span>
             </div>
-            <div class="chart-container">
+            <h2 class="panel-title">Tactical Analytics & Multiverse Telemetry</h2>
+            <p class="panel-subtitle">Real-time multiversal incursion monitoring, operative combat readiness, and Latverian siphon tracking.</p>
+          </div>
+          <div class="panel-actions analytics-actions-wrap">
+            <div class="timeframe-pill-group" id="analytics-timeframe-group">
+              <button class="timeframe-btn active" data-timeframe="all">All Time</button>
+              <button class="timeframe-btn" data-timeframe="30d">Last 30D</button>
+              <button class="timeframe-btn" data-timeframe="7d">Last 7D</button>
+              <button class="timeframe-btn" data-timeframe="battleworld">Battleworld</button>
+            </div>
+            <button class="btn btn-sm btn-ghost telemetry-live-toggle" id="btn-toggle-live-telemetry" title="Toggle Live Telemetry Auto-Stream">
+              <span class="live-dot active"></span>
+              <span id="live-stream-label">Live Feed: ON</span>
+            </button>
+            <button class="btn btn-sm btn-danger-pulse" id="btn-doom-pulse" title="Simulate Latverian Cosmic Siphon Spike">
+              <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"/></svg>
+              <span>Simulate Threat Spike</span>
+            </button>
+            <button class="btn btn-sm btn-ghost" id="btn-export-dossier" title="Export S.H.I.E.L.D. Intelligence Briefing">
+              <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+              <span>Export Dossier</span>
+            </button>
+            <button class="btn btn-sm btn-primary" id="btn-reboot-loader" title="Re-launch Themed Boot Loading Screen">
+              <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="23 4 23 10 17 10"/><path d="M20.49 15a9 9 0 1 1-2.12-9.36L23 10"/></svg>
+              <span>Boot Telemetry</span>
+            </button>
+          </div>
+        </div>
+
+        <!-- High-Impact Telemetry KPI Summary Cards -->
+        <div class="telemetry-kpi-grid">
+          <!-- KPI 1 -->
+          <div class="glass-card kpi-card kpi-danger">
+            <div class="kpi-header">
+              <span class="kpi-label">GLOBAL THREAT INDEX</span>
+              <span class="kpi-icon">⚠️</span>
+            </div>
+            <div class="kpi-body">
+              <div class="kpi-value-row">
+                <span class="kpi-main-val" id="kpi-threat-val">94.8%</span>
+                <span class="kpi-delta delta-up">▲ +12.4%</span>
+              </div>
+              <div class="kpi-sub">Victor Von Doom Beyonder Siphon Active</div>
+              <div class="kpi-bar-track">
+                <div class="kpi-bar-fill kpi-fill-danger" id="kpi-threat-bar" style="width: 94.8%;"></div>
+              </div>
+            </div>
+          </div>
+
+          <!-- KPI 2 -->
+          <div class="glass-card kpi-card kpi-success">
+            <div class="kpi-header">
+              <span class="kpi-label">OPERATIVE READINESS</span>
+              <span class="kpi-icon">🛡️</span>
+            </div>
+            <div class="kpi-body">
+              <div class="kpi-value-row">
+                <span class="kpi-main-val" id="kpi-readiness-val">88.5%</span>
+                <span class="kpi-delta delta-ok">▲ +4.2%</span>
+              </div>
+              <div class="kpi-sub">10 Combat Ready • 2 Recovery • 1 Standby</div>
+              <div class="kpi-bar-track">
+                <div class="kpi-bar-fill kpi-fill-success" style="width: 88.5%;"></div>
+              </div>
+            </div>
+          </div>
+
+          <!-- KPI 3 -->
+          <div class="glass-card kpi-card kpi-info">
+            <div class="kpi-header">
+              <span class="kpi-label">INCURSION CONTAINMENT</span>
+              <span class="kpi-icon">🌀</span>
+            </div>
+            <div class="kpi-body">
+              <div class="kpi-value-row">
+                <span class="kpi-main-val" id="kpi-containment-val">76.2%</span>
+                <span class="kpi-delta delta-warn">3 Active Horizons</span>
+              </div>
+              <div class="kpi-sub">Earth-838, Earth-1610, Battleworld Singularity</div>
+              <div class="kpi-bar-track">
+                <div class="kpi-bar-fill kpi-fill-info" style="width: 76.2%;"></div>
+              </div>
+            </div>
+          </div>
+
+          <!-- KPI 4 -->
+          <div class="glass-card kpi-card kpi-purple">
+            <div class="kpi-header">
+              <span class="kpi-label">VICTORY PROBABILITY</span>
+              <span class="kpi-icon">✨</span>
+            </div>
+            <div class="kpi-body">
+              <div class="kpi-value-row">
+                <span class="kpi-main-val" id="kpi-victory-val">38.4%</span>
+                <span class="kpi-delta delta-mystic">14M Scans</span>
+              </div>
+              <div class="kpi-sub">Condition: Wanda Hex-Inversion Matrix Sealed</div>
+              <div class="kpi-bar-track">
+                <div class="kpi-bar-fill kpi-fill-purple" style="width: 38.4%;"></div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Enhanced Analytics Grid -->
+        <div class="analytics-grid">
+          <!-- 1. Mission Trajectory & Threat Velocity (Span 2) -->
+          <div class="glass-card span-2 chart-card">
+            <div class="card-header chart-card-header">
+              <div>
+                <h3 class="card-title">Mission Trajectory & Threat Velocity</h3>
+                <span class="card-sub-hint">Missions resolved vs Incursion breach count vs Doom Beyonder drain curve</span>
+              </div>
+              <span class="card-tag" id="trend-timeframe-tag">TIMEFRAME: ALL TIME</span>
+            </div>
+            <div class="chart-container chart-lg">
               <canvas id="mission-trend-chart"></canvas>
             </div>
           </div>
-          <div class="glass-card">
-            <div class="card-header">
-              <h3 class="card-title">Team Power Distribution</h3>
+
+          <!-- 2. Dynamic Operative Comparison Radar (Span 2) -->
+          <div class="glass-card chart-card span-2">
+            <div class="card-header chart-card-header">
+              <div>
+                <h3 class="card-title">Dynamic Operative Comparison Radar</h3>
+                <span class="card-sub-hint">Compare power, combat speed, tactical intel, shielding & resilience</span>
+              </div>
+              <!-- Hero Selectors -->
+              <div class="radar-selectors-wrap">
+                <div class="radar-picker-col">
+                  <label for="radar-hero-1-select" class="picker-label">Operative Alpha:</label>
+                  <select id="radar-hero-1-select" class="radar-hero-select"></select>
+                </div>
+                <div class="radar-vs-badge">VS</div>
+                <div class="radar-picker-col">
+                  <label for="radar-hero-2-select" class="picker-label">Operative Beta:</label>
+                  <select id="radar-hero-2-select" class="radar-hero-select"></select>
+                </div>
+              </div>
+            </div>
+            <div class="radar-body-grid">
+              <div class="chart-container chart-radar">
+                <canvas id="hero-radar-chart"></canvas>
+              </div>
+              <div class="radar-sidebar-intel">
+                <h4 class="intel-block-title">TACTICAL MATCHUP DOSSIER</h4>
+                <div id="radar-matchup-info" class="radar-matchup-info">
+                  <!-- Populated dynamically -->
+                </div>
+                <div class="radar-tactical-tip">
+                  <div class="tip-header">💡 JARVIS PROTOCOL RECOMMENDATION</div>
+                  <p class="tip-body">Pairing mystic operatives (Doctor Strange / Scarlet Witch) with high-density armor vanguards (Iron Man / Thor) grants a +32% harmonic defense barrier against Beyonder-level temporal dismemberment.</p>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- 3. Multiverse Incursion Threat Matrix (Bubble Chart) -->
+          <div class="glass-card chart-card">
+            <div class="card-header chart-card-header">
+              <div>
+                <h3 class="card-title">Multiverse Incursion Matrix</h3>
+                <span class="card-sub-hint">Instability vs Threat Score vs Impact Diameter</span>
+              </div>
+              <span class="card-tag alert-tag">6 COLLISION NODES</span>
+            </div>
+            <div class="chart-container">
+              <canvas id="incursion-matrix-chart"></canvas>
+            </div>
+          </div>
+
+          <!-- 4. Team Division Power Distribution -->
+          <div class="glass-card chart-card">
+            <div class="card-header chart-card-header">
+              <div>
+                <h3 class="card-title">Team Power Distribution</h3>
+                <span class="card-sub-hint">Top operatives by gross kinetic/mystic output</span>
+              </div>
             </div>
             <div class="chart-container">
               <canvas id="power-distribution-chart"></canvas>
             </div>
           </div>
-          <div class="glass-card">
-            <div class="card-header">
-              <h3 class="card-title">Threat Categories</h3>
+
+          <!-- 5. Threat Categories Breakdown -->
+          <div class="glass-card chart-card">
+            <div class="card-header chart-card-header">
+              <div>
+                <h3 class="card-title">Threat Categories Breakdown</h3>
+                <span class="card-sub-hint">Multiversal hazard ratings by danger vector</span>
+              </div>
             </div>
             <div class="chart-container">
               <canvas id="threat-categories-chart"></canvas>
             </div>
           </div>
-          <div class="glass-card">
-            <div class="card-header">
-              <h3 class="card-title">Hero Power Stats</h3>
-            </div>
-            <div class="chart-container">
-              <canvas id="hero-radar-chart"></canvas>
-            </div>
-          </div>
-          <div class="glass-card">
-            <div class="card-header">
-              <h3 class="card-title">Mission Priority</h3>
+
+          <!-- 6. Mission Priority Breakdown -->
+          <div class="glass-card chart-card">
+            <div class="card-header chart-card-header">
+              <div>
+                <h3 class="card-title">Mission Priority Distribution</h3>
+                <span class="card-sub-hint">High, medium, and low tactical assignments</span>
+              </div>
             </div>
             <div class="chart-container">
               <canvas id="priority-chart"></canvas>
             </div>
+          </div>
+
+          <!-- 7. Planetary Defense Resource Allocation (Span 2) -->
+          <div class="glass-card span-2 chart-card">
+            <div class="card-header chart-card-header">
+              <div>
+                <h3 class="card-title">Planetary Defense Grid & Resource Allocation</h3>
+                <span class="card-sub-hint">Active megawatt deployment vs emergency reserves across global defense sectors</span>
+              </div>
+              <span class="card-tag">STATUS: 92% NOMINAL</span>
+            </div>
+            <div class="chart-container chart-md">
+              <canvas id="resource-allocation-chart"></canvas>
+            </div>
+          </div>
+        </div>
+
+        <!-- Real-Time Tactical Anomaly & Multiverse Event Feed -->
+        <div class="glass-card analytics-anomaly-card">
+          <div class="card-header anomaly-header">
+            <div class="anomaly-title-wrap">
+              <span class="live-pulse-dot"></span>
+              <h3 class="card-title">Live Tactical Anomaly & Multiverse Event Log</h3>
+              <span class="anomaly-counter-badge" id="anomaly-counter">LIVE STREAMING</span>
+            </div>
+            <div class="anomaly-filter-chips" id="anomaly-filter-chips">
+              <button class="chip-btn active" data-filter="all">All Events</button>
+              <button class="chip-btn" data-filter="critical">Critical</button>
+              <button class="chip-btn" data-filter="warning">Warnings</button>
+              <button class="chip-btn" data-filter="intel">Intel</button>
+            </div>
+          </div>
+          <div class="anomaly-terminal-body" id="analytics-anomaly-feed">
+            <!-- Dynamically populated and live streaming -->
           </div>
         </div>
       </section>
