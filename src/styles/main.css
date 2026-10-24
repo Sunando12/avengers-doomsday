@@ -2862,7 +2862,7 @@ body.loading-locked {
   .nav-search { order: 3; flex: 0 0 100%; }
   .nav-actions { margin-left: auto; }
   .hero-banner { flex-direction: column; text-align: center; padding: var(--space-lg); }
-  .hero-visual { display: none; }
+  .hero-visual { display: flex; justify-content: center; margin-top: var(--space-md); }
   .hero-actions { justify-content: center; }
   .hero-title { font-size: 1.5rem; }
   .stats-grid { grid-template-columns: repeat(2, 1fr); }
@@ -3567,6 +3567,19 @@ body.theater-mode-on .trailer-hub-card {
 @keyframes liveBlink {
   0%, 100% { opacity: 1; transform: scale(1); }
   50% { opacity: 0.3; transform: scale(0.8); }
+}
+
+/* =====================================================
+   THREE.JS 3D WEBGL MULTIVERSAL BACKGROUND
+   ===================================================== */
+#particle-canvas {
+  position: fixed;
+  inset: 0;
+  width: 100vw;
+  height: 100vh;
+  z-index: var(--z-canvas);
+  pointer-events: none;
+  background: transparent;
 }
 
 /* === CHARACTER PHOTOS & ROSTER ENHANCEMENTS === */

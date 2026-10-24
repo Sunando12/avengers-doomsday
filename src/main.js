@@ -33,6 +33,9 @@ import {
 import { HEROES as DEFAULT_HEROES, MISSIONS as DEFAULT_MISSIONS, INCURSION_ZONES } from './data/mock-data.js';
 import Sortable from 'sortablejs';
 
+// Specialist WebGL / Three.js 3D Background Engine
+import { initThreeBackground } from './modules/three-background.js';
+
 // ═══════════════════════════════════════════════════════════════
 // STATE
 // ═══════════════════════════════════════════════════════════════
@@ -105,8 +108,8 @@ document.addEventListener('DOMContentLoaded', () => {
     }
   });
 
-  // Core modules
-  initParticles();
+  // Core modules: Specialist Three.js 3D Multiversal Background
+  initThreeBackground('#particle-canvas');
   initThemes();
   initModal();
 
@@ -1051,7 +1054,6 @@ function bindButtons() {
       openCalendarSettingsModal();
     });
   }
-
   // New Mission from hero banner
   const newMissionBtn = document.getElementById('btn-new-mission');
   if (newMissionBtn) newMissionBtn.addEventListener('click', () => {
