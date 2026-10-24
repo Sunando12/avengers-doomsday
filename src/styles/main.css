@@ -2845,7 +2845,7 @@ body.loading-locked {
   margin-top: var(--space-lg);
 }
 
-/* === RESPONSIVE === */
+/* === COMPREHENSIVE RESPONSIVE ENGINE (MOBILE & TABLET) === */
 @media (max-width: 1200px) {
   .dashboard-grid { grid-template-columns: repeat(2, 1fr); }
   .analytics-grid { grid-template-columns: repeat(2, 1fr); }
@@ -2853,40 +2853,663 @@ body.loading-locked {
 }
 
 @media (max-width: 1024px) {
-  .kanban-board { grid-template-columns: repeat(2, 1fr); }
-  .stats-grid { grid-template-columns: repeat(2, 1fr); }
+  .kanban-board { grid-template-columns: repeat(2, 1fr); gap: var(--space-md); }
+  .stats-grid { grid-template-columns: repeat(2, 1fr); gap: var(--space-md); }
+  .incursion-grid { grid-template-columns: 1fr; gap: var(--space-lg); }
+  .calendar-layout { grid-template-columns: 1fr; gap: var(--space-lg); }
+  .arena-fighters-grid { gap: var(--space-md); }
+  .main-content { padding: var(--space-lg); }
 }
 
+/* Tablets & Mobile Screens (<= 768px) */
 @media (max-width: 768px) {
-  .top-nav { flex-wrap: wrap; padding: 10px var(--space-md); }
-  .nav-search { order: 3; flex: 0 0 100%; }
-  .nav-actions { margin-left: auto; }
-  .hero-banner { flex-direction: column; text-align: center; padding: var(--space-lg); }
-  .hero-visual { display: flex; justify-content: center; margin-top: var(--space-md); }
-  .hero-actions { justify-content: center; }
-  .hero-title { font-size: 1.5rem; }
-  .stats-grid { grid-template-columns: repeat(2, 1fr); }
-  .dashboard-grid { grid-template-columns: 1fr; }
-  .analytics-grid { grid-template-columns: 1fr; }
-  .span-2 { grid-column: span 1; }
-  .kanban-board {
-    grid-template-columns: 1fr;
+  /* Layout & Shell */
+  html, body {
+    overflow-x: hidden;
+    width: 100%;
   }
+
+  .main-content {
+    padding: 14px 12px calc(40px + env(safe-area-inset-bottom, 0px)) 12px;
+    max-width: 100%;
+  }
+
+  /* Fixed Floating Controls (Theme Switcher & Motion Toggle) */
+  .theme-switcher {
+    top: 10px;
+    right: 10px;
+    z-index: calc(var(--z-nav) + 10);
+  }
+  .theme-toggle-btn {
+    width: 38px;
+    height: 38px;
+  }
+  .theme-dropdown {
+    top: 44px;
+    right: 0;
+    min-width: 190px;
+  }
+
+  .motion-toggle {
+    bottom: calc(14px + env(safe-area-inset-bottom, 0px));
+    left: 14px;
+    width: 38px;
+    height: 38px;
+  }
+
+  /* Top Nav */
+  .top-nav {
+    flex-wrap: wrap;
+    padding: 8px 56px 10px 12px; /* 56px right padding leaves clear room for theme switcher */
+    gap: 8px;
+    position: sticky;
+    top: 0;
+  }
+  .nav-brand {
+    gap: 8px;
+  }
+  .avengers-logo svg {
+    width: 28px;
+    height: 28px;
+  }
+  .brand-title {
+    font-size: 0.95rem;
+    letter-spacing: 2px;
+  }
+  .brand-sub {
+    font-size: 0.55rem;
+    letter-spacing: 1px;
+    display: none;
+  }
+  .nav-actions {
+    margin-left: auto;
+    gap: 6px;
+  }
+  .nav-btn {
+    padding: 0 10px;
+    height: 38px;
+    font-size: 0.78rem;
+    border-radius: var(--radius-full);
+  }
+  .nav-btn .btn-label {
+    display: none; /* Icon-only compact touch mode */
+  }
+  #calendar-connect-btn {
+    width: 38px;
+    height: 38px;
+    padding: 0;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    position: relative;
+  }
+  #calendar-connect-btn .status-dot {
+    position: absolute;
+    top: 6px;
+    right: 6px;
+    margin: 0;
+  }
+  #sound-toggle-btn {
+    width: 38px;
+    height: 38px;
+    padding: 0;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+  }
+
+  /* Omnisearch Bar */
+  .nav-search {
+    order: 3;
+    flex: 0 0 100%;
+    width: 100%;
+    margin-top: 2px;
+  }
+  .search-input {
+    padding: 9px 38px 9px 36px;
+    font-size: 0.85rem;
+    border-radius: var(--radius-md);
+  }
+  .search-icon {
+    left: 12px;
+  }
+  .search-kbd {
+    display: none; /* Hide desktop ⌘K shortcut hint on touch screens */
+  }
+  .search-clear-btn {
+    right: 10px;
+  }
+
+  /* Omnisearch Mobile Sheet */
+  .search-dropdown {
+    position: fixed;
+    top: 115px;
+    left: 10px;
+    right: 10px;
+    width: auto;
+    max-width: none;
+    max-height: calc(85vh - 120px);
+    z-index: var(--z-modal);
+    border-radius: var(--radius-lg);
+  }
+  .search-dropdown-filters {
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+    scrollbar-width: none;
+    flex-wrap: nowrap;
+    padding-bottom: 2px;
+  }
+  .search-dropdown-filters::-webkit-scrollbar {
+    display: none;
+  }
+  .search-dropdown-footer .search-footer-shortcuts {
+    display: none;
+  }
+
+  /* Sticky Tab Bar with Smooth Touch Scroll */
+  .tab-bar {
+    padding: 0 10px;
+    gap: 4px;
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+    scrollbar-width: none;
+    position: sticky;
+    top: 102px;
+    z-index: 90;
+    background: rgba(10, 16, 12, 0.95);
+    backdrop-filter: blur(16px);
+  }
+  .tab-bar::-webkit-scrollbar {
+    display: none;
+  }
+  .tab-btn {
+    padding: 10px 14px;
+    font-size: 0.78rem;
+    flex-shrink: 0;
+    gap: 6px;
+    min-height: 44px; /* WCAG touch target */
+    border-radius: var(--radius-sm);
+  }
+  .tab-btn svg {
+    width: 16px;
+    height: 16px;
+  }
+
+  /* Hero Section */
+  .hero-banner {
+    flex-direction: column;
+    text-align: center;
+    padding: 20px 16px;
+    border-radius: var(--radius-lg);
+    gap: 16px;
+  }
+  .hero-content {
+    max-width: 100%;
+  }
+  .hero-badge {
+    font-size: 0.65rem;
+    padding: 3px 10px;
+    margin-bottom: 8px;
+  }
+  .hero-title {
+    font-size: 1.6rem;
+    letter-spacing: 2px;
+    line-height: 1.25;
+    margin-bottom: 8px;
+  }
+  .hero-desc {
+    font-size: 0.85rem;
+    line-height: 1.5;
+    margin-bottom: 16px;
+  }
+  .hero-actions {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 8px;
+    width: 100%;
+  }
+  .hero-actions #btn-watch-trailer {
+    grid-column: 1 / -1;
+  }
+  .hero-actions .btn {
+    justify-content: center;
+    padding: 10px 14px;
+    font-size: 0.82rem;
+    min-height: 44px;
+  }
+
+  /* Doctor Doom Avatar Frame Responsive Scaling */
+  .hero-visual {
+    display: flex;
+    justify-content: center;
+    width: 100%;
+    margin-top: 8px;
+  }
+  .doom-avatar-frame {
+    width: 160px;
+    height: 160px;
+  }
+  .doom-img-wrapper {
+    width: 120px;
+    height: 120px;
+  }
+  .ring-outer {
+    width: 156px;
+    height: 156px;
+  }
+  .ring-middle {
+    width: 142px;
+    height: 142px;
+  }
+  .ring-inner {
+    width: 128px;
+    height: 128px;
+  }
+  .doom-photo-badge {
+    font-size: 0.58rem;
+    padding: 2px 8px;
+    bottom: -6px;
+  }
+
+  /* Countdown Card */
+  .countdown-card {
+    padding: 16px 12px;
+    margin-top: 14px;
+    border-radius: var(--radius-md);
+  }
+  .countdown-badge {
+    font-size: 0.65rem;
+  }
+  .countdown-title {
+    font-size: 1.05rem;
+    letter-spacing: 0.5px;
+  }
+  .countdown-date {
+    font-size: 0.72rem;
+  }
+  .countdown-timer-grid {
+    grid-template-columns: repeat(4, 1fr);
+    gap: 6px;
+    width: 100%;
+    max-width: 100%;
+  }
+  .time-box {
+    padding: 8px 4px;
+  }
+  .time-val {
+    font-size: 1.25rem;
+  }
+  .time-lbl {
+    font-size: 0.58rem;
+  }
+  .countdown-actions {
+    flex-direction: column;
+    align-items: stretch;
+    gap: 8px;
+    width: 100%;
+  }
+  .countdown-actions .btn {
+    width: 100%;
+    justify-content: center;
+    min-height: 42px;
+  }
+
+  /* Stats Grid */
+  .stats-grid {
+    grid-template-columns: repeat(2, 1fr);
+    gap: 8px;
+    margin-bottom: 16px;
+  }
+  .stat-card {
+    padding: 12px 10px;
+    gap: 8px;
+    border-radius: var(--radius-md);
+  }
+  .stat-icon {
+    width: 36px;
+    height: 36px;
+    font-size: 1.1rem;
+    flex-shrink: 0;
+  }
+  .stat-value {
+    font-size: 1.35rem;
+  }
+  .stat-label {
+    font-size: 0.68rem;
+  }
+
+  /* Dashboard Cards */
+  .dashboard-grid {
+    grid-template-columns: 1fr;
+    gap: 14px;
+  }
+  .card-header {
+    flex-wrap: wrap;
+    gap: 8px;
+  }
+  .gauge-container {
+    height: 180px;
+  }
+  .threat-readout {
+    bottom: 12px;
+  }
+  .threat-readout-val {
+    font-size: 1.8rem;
+  }
+
+  /* Heroes Roster */
+  .heroes-header {
+    flex-direction: column;
+    align-items: stretch;
+    gap: 10px;
+  }
+  .filter-group {
+    display: flex;
+    gap: 6px;
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+    scrollbar-width: none;
+    padding-bottom: 2px;
+  }
+  .filter-group::-webkit-scrollbar {
+    display: none;
+  }
+  .filter-btn {
+    flex-shrink: 0;
+    padding: 6px 12px;
+    font-size: 0.75rem;
+    min-height: 38px;
+  }
+  .heroes-grid {
+    grid-template-columns: 1fr;
+    gap: 12px;
+  }
+  .hero-card-actions {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 6px;
+  }
+  .hero-card-actions .btn {
+    justify-content: center;
+    min-height: 38px;
+    padding: 6px 8px;
+    font-size: 0.75rem;
+  }
+
+  /* Missions Kanban */
+  .kanban-board {
+    display: flex;
+    flex-direction: column;
+    gap: 14px;
+  }
+  .kanban-col {
+    border-radius: var(--radius-md);
+    padding: 12px;
+    min-height: unset;
+  }
+  .kanban-header {
+    font-size: 0.85rem;
+    padding-bottom: 8px;
+    margin-bottom: 8px;
+  }
+  .mission-card {
+    padding: 12px;
+    margin-bottom: 8px;
+  }
+  .mission-actions {
+    flex-wrap: wrap;
+    gap: 6px;
+  }
+
+  /* Incursions */
+  .incursion-grid {
+    grid-template-columns: 1fr;
+    gap: 14px;
+  }
+  .incursion-visualizer-card .canvas-container {
+    height: 190px;
+  }
+  .incursion-status-info {
+    grid-template-columns: repeat(3, 1fr);
+    padding: 10px;
+    gap: 6px;
+  }
+  .status-col-val {
+    font-size: 0.95rem;
+  }
+
+  /* Battle Arena */
+  .arena-container {
+    padding: 12px;
+    gap: 14px;
+  }
+  .arena-matchup-bar {
+    flex-direction: column;
+    gap: 10px;
+  }
+  .arena-vs-badge {
+    font-size: 1.25rem;
+    margin: 2px 0;
+  }
+  .arena-fighters-grid {
+    grid-template-columns: 1fr;
+    gap: 12px;
+  }
+  .arena-fighter-card {
+    padding: 14px;
+  }
+  .arena-card-avatar,
+  .arena-card-photo-box {
+    width: 75px;
+    height: 75px;
+    margin-bottom: 8px;
+  }
+  .arena-card-name {
+    font-size: 1.1rem;
+  }
+  .arena-action-center {
+    width: 100%;
+  }
+  .arena-action-center #btn-start-duel {
+    width: 100%;
+    justify-content: center;
+    font-size: 0.95rem;
+    min-height: 48px;
+  }
+  .arena-battle-log {
+    height: 130px;
+    font-size: 0.75rem;
+  }
+
+  /* Tactical Analytics */
+  .analytics-grid {
+    grid-template-columns: 1fr;
+    gap: 14px;
+  }
+  .analytics-timeframe-bar {
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+    scrollbar-width: none;
+    flex-wrap: nowrap;
+    padding-bottom: 2px;
+  }
+  .analytics-timeframe-bar::-webkit-scrollbar {
+    display: none;
+  }
+  .chart-card {
+    padding: 12px;
+  }
+  .chart-canvas-container {
+    height: 220px !important;
+  }
+  .radar-body-grid {
+    grid-template-columns: 1fr;
+    gap: 12px;
+  }
+  .radar-header-selects {
+    flex-direction: column;
+    width: 100%;
+    gap: 6px;
+  }
+
+  /* Calendar */
   .calendar-layout {
     grid-template-columns: 1fr;
+    gap: 14px;
   }
-  .tab-bar { padding: 0 var(--space-md); }
-  .main-content { padding: var(--space-md); }
-  .form-row { grid-template-columns: 1fr; }
-  .toast-container { right: 16px; left: 16px; max-width: none; }
+  .mini-calendar-grid {
+    gap: 2px;
+  }
+  .mini-cal-day {
+    height: 38px;
+    font-size: 0.8rem;
+  }
+  .agenda-item {
+    flex-direction: column;
+    gap: 8px;
+    padding: 12px;
+  }
+  .cal-quick-actions {
+    flex-wrap: wrap;
+    width: 100%;
+  }
+
+  /* Trailer Hub */
+  .trailer-hub-card {
+    padding: 14px;
+    margin-top: 14px;
+  }
+  .trailer-tabs-bar {
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+    scrollbar-width: none;
+    flex-wrap: nowrap;
+    padding-bottom: 2px;
+  }
+  .trailer-tabs-bar::-webkit-scrollbar {
+    display: none;
+  }
+
+  /* Modals & Forms (Full Width & Safe Areas) */
+  .modal-content {
+    width: 95% !important;
+    max-width: 95vw !important;
+    padding: 18px 14px !important;
+    max-height: 88vh !important;
+    border-radius: var(--radius-md) !important;
+  }
+  .form-row {
+    grid-template-columns: 1fr !important;
+    gap: 10px;
+  }
+  .form-input,
+  .form-select,
+  .form-textarea {
+    font-size: 16px !important; /* Prevents iOS Safari auto-zoom on input focus */
+    min-height: 44px;
+  }
+  .form-actions {
+    flex-direction: column-reverse;
+    gap: 8px;
+    width: 100%;
+  }
+  .form-actions .btn {
+    width: 100%;
+    justify-content: center;
+    min-height: 44px;
+  }
+
+  /* Toast Notifications */
+  .toast-container {
+    right: 12px;
+    left: 12px;
+    top: 12px;
+    max-width: none;
+  }
+  .toast {
+    padding: 12px 14px;
+    font-size: 0.82rem;
+  }
+
+  /* Themed Boot Loader Screen */
+  .loader-content-wrap {
+    width: 95%;
+    padding: 20px 14px;
+    gap: 12px;
+    border-radius: var(--radius-lg);
+  }
+  .loader-hologram-stage {
+    width: 110px;
+    height: 110px;
+    margin-bottom: 0;
+  }
+  .ring-outer { width: 106px; height: 106px; }
+  .ring-middle { width: 88px; height: 88px; }
+  .ring-inner { width: 72px; height: 72px; }
+  .loader-core-emblem { width: 56px; height: 56px; }
+  .loader-main-title {
+    font-size: 1.3rem;
+    letter-spacing: 1.5px;
+  }
+  .loader-sys-tag {
+    font-size: 0.6rem;
+    letter-spacing: 1px;
+  }
+  .loader-sub-tag {
+    font-size: 0.62rem;
+    letter-spacing: 0.8px;
+  }
+  .loader-terminal-container {
+    max-height: 120px;
+  }
+  .loader-terminal-stream {
+    max-height: 80px;
+    font-size: 0.65rem;
+  }
+  .loader-shortcut-hint {
+    display: none; /* Hide keyboard shortcut text on touch screens */
+  }
+  .loader-footer-bar {
+    justify-content: center;
+  }
+  .loader-skip-action-btn {
+    width: 100%;
+    text-align: center;
+    padding: 10px 16px;
+    min-height: 44px;
+    font-size: 0.8rem;
+  }
 }
 
+/* Extra Small Mobile Devices (<= 480px) */
 @media (max-width: 480px) {
-  .stats-grid { grid-template-columns: 1fr; }
-  .heroes-grid { grid-template-columns: 1fr; }
-  .brand-title { font-size: 0.85rem; }
-  .panel-title { font-size: 1.1rem; }
-  .filter-group { flex-wrap: wrap; }
+  .stats-grid {
+    grid-template-columns: 1fr 1fr;
+    gap: 6px;
+  }
+  .stat-card {
+    padding: 10px 8px;
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 4px;
+  }
+  .stat-value {
+    font-size: 1.25rem;
+  }
+  .hero-title {
+    font-size: 1.4rem;
+    letter-spacing: 1px;
+  }
+  .hero-actions {
+    grid-template-columns: 1fr;
+  }
+  .incursion-status-info {
+    grid-template-columns: 1fr;
+    gap: 6px;
+  }
+  .panel-title {
+    font-size: 1.05rem;
+  }
 }
 
 /* === REDUCED MOTION === */
