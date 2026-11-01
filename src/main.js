@@ -24,6 +24,14 @@ import { initIncursions, selectIncursionZone } from './modules/incursions.js';
 import { initArena, updateArenaHeroes, selectFighter1 } from './modules/arena.js';
 import { initLoader, replayLoader } from './modules/loader.js';
 import {
+  initAllAnimations, animateHeroCards, animateKanbanCards,
+  animateTabSwitch, animateModalOpen, animateModalClose,
+  animateCounter, animateKPICards, animateAnalyticsCharts,
+  animateIncursionPanel, animateArenaEntrance, animateBattleImpact,
+  animateSimResults, animateSearchOpen, animateNewAnomalyRow,
+  refreshScrollTriggers, flipDigit
+} from './modules/gsap-animations.js';
+import {
   drawThreatGauge, initReadinessChart,
   initMissionTrendChart, initPowerDistributionChart,
   initThreatCategoriesChart, initHeroRadarChart, initPriorityChart,
@@ -64,7 +72,7 @@ let anomalyLogItems = [
 // ═══════════════════════════════════════════════════════════════
 // INITIALIZATION
 // ═══════════════════════════════════════════════════════════════
-document.addEventListener('DOMContentLoaded', () => {
+function initApp() {
   // Load persisted data and synchronize official character images and power tiers
   const storedHeroes = loadData(STORAGE_KEYS.HEROES, null);
   if (storedHeroes && storedHeroes.length > 0) {
@@ -105,6 +113,8 @@ document.addEventListener('DOMContentLoaded', () => {
   initLoader({
     onComplete: () => {
       showToast('Systems nominal. Welcome to the Doomsday Command Center, Avenger.', 'info');
+      // Fire GSAP cinematic entrance animations after boot loader completes
+      initAllAnimations();
     }
   });
 
@@ -147,12 +157,14 @@ document.addEventListener('DOMContentLoaded', () => {
 
   // Button bindings
   bindButtons();
-  initDoomParallax();
 
   // Initial renders
   renderDashboard();
   renderHeroes();
   renderMissions();
+
+  // Initialize GSAP tactile animations and interactions immediately
+  initAllAnimations();
 
   // Render charts after a small delay to ensure DOM is ready
   setTimeout(() => {
@@ -166,7 +178,13 @@ document.addEventListener('DOMContentLoaded', () => {
   window.addEventListener('themechange', () => {
     updateChartsTheme();
   });
-});
+}
+
+if (document.readyState === 'loading') {
+  document.addEventListener('DOMContentLoaded', initApp);
+} else {
+  initApp();
+}
 
 // ═══════════════════════════════════════════════════════════════
 // TABS
@@ -187,11 +205,26 @@ function switchTab(tab) {
   // Update panels
   document.querySelectorAll('.tab-panel').forEach(p => p.classList.toggle('active', p.id === `panel-${tab}`));
 
+  // GSAP tab transition animation
+  animateTabSwitch(`panel-${tab}`);
+
   // Lazy-init charts when analytics tab opens
   if (tab === 'analytics') {
     setTimeout(() => {
       renderAnalyticsView();
+      animateKPICards();
+      animateAnalyticsCharts();
     }, 50);
+  }
+
+  // Animate incursion panel entrance
+  if (tab === 'incursions') {
+    animateIncursionPanel();
+  }
+
+  // Animate arena entrance
+  if (tab === 'arena') {
+    animateArenaEntrance();
   }
 }
 
@@ -437,6 +470,9 @@ function renderAnomalyFeed() {
       <span class="anomaly-desc">${item.text}</span>
     </div>
   `).join('');
+
+  // GSAP: Animate newest anomaly row entrance
+  animateNewAnomalyRow();
 }
 
 // ═══════════════════════════════════════════════════════════════
@@ -468,10 +504,15 @@ function initCountdown() {
     const mEl = document.getElementById('cd-mins');
     const sEl = document.getElementById('cd-secs');
 
+    // GSAP flip-digit animation for seconds (most visible tick)
+    const newSecs = pad(seconds);
+    if (sEl && sEl.textContent !== newSecs) {
+      flipDigit('cd-secs', newSecs);
+    }
+
     if (dEl) dEl.textContent = pad(days);
     if (hEl) hEl.textContent = pad(hours);
     if (mEl) mEl.textContent = pad(minutes);
-    if (sEl) sEl.textContent = pad(seconds);
   }
 
   if (countdownInterval) clearInterval(countdownInterval);
@@ -624,7 +665,10 @@ function initSearch() {
 
 function openSearchDropdown() {
   const dropdown = document.getElementById('search-dropdown');
-  if (dropdown) dropdown.classList.remove('hidden');
+  if (dropdown) {
+    dropdown.classList.remove('hidden');
+    animateSearchOpen(dropdown);
+  }
 }
 
 function closeSearchDropdown() {
@@ -1288,13 +1332,10 @@ function updateStats() {
   const activeHeroes = heroes.filter(h => h.status === 'active').length;
   const activeMissions = missions.filter(m => m.status === 'active' || m.status === 'critical').length;
 
-  const statHeroes = document.getElementById('stat-heroes');
-  const statMissions = document.getElementById('stat-missions');
-  const statEvents = document.getElementById('stat-events');
-
-  if (statHeroes) statHeroes.textContent = activeHeroes;
-  if (statMissions) statMissions.textContent = activeMissions;
-  if (statEvents) statEvents.textContent = events.length;
+  // GSAP animated counters
+  animateCounter('stat-heroes', activeHeroes);
+  animateCounter('stat-missions', activeMissions);
+  animateCounter('stat-events', events.length);
 }
 
 function renderDashboardMissions() {
@@ -1453,6 +1494,9 @@ function renderHeroes() {
   `).join('');
 
   attachCardTiltEffects();
+
+  // GSAP: Staggered hero card entrance animations
+  animateHeroCards();
 }
 
 function openHeroDossier(hero) {
@@ -1659,6 +1703,9 @@ function renderMissions() {
       }
     });
   });
+
+  // GSAP: Animate kanban cards entrance
+  animateKanbanCards();
 
   const banner = document.getElementById('missions-search-banner');
   if (banner) {

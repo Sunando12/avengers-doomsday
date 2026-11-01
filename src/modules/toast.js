@@ -1,7 +1,9 @@
 /**
  * Toast Notification Module
- * Provides lightweight, animated toast notifications.
+ * Provides lightweight, GSAP-animated tactical toast notifications.
  */
+
+import { animateToastIn, animateToastOut } from './gsap-animations.js';
 
 const ICONS = {
   success: '✅',
@@ -30,6 +32,9 @@ export function showToast(message, type = 'info', duration = DEFAULT_DURATION) {
   `;
   container.appendChild(toast);
 
+  // Animate in with GSAP spring bounce
+  animateToastIn(toast);
+
   // Auto-dismiss
   const timer = setTimeout(() => dismissToast(toast), duration);
 
@@ -41,6 +46,9 @@ export function showToast(message, type = 'info', duration = DEFAULT_DURATION) {
 }
 
 function dismissToast(toast) {
-  toast.classList.add('removing');
-  toast.addEventListener('animationend', () => toast.remove(), { once: true });
+  if (!toast || toast.__removing) return;
+  toast.__removing = true;
+  animateToastOut(toast, () => {
+    if (toast.parentNode) toast.remove();
+  });
 }

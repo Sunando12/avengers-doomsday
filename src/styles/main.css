@@ -1092,23 +1092,26 @@ body {
 }
 .btn-sm { padding: 7px 14px; font-size: 0.8rem; }
 .btn-primary {
-  background: var(--accent-primary);
+  background: linear-gradient(135deg, var(--accent-primary), #059669);
   color: white;
-  box-shadow: 0 2px 8px var(--accent-primary-alpha);
+  box-shadow: 0 4px 15px var(--accent-primary-alpha);
+  border: 1px solid rgba(255, 255, 255, 0.15);
 }
 .btn-primary:hover {
-  filter: brightness(1.15);
-  box-shadow: 0 4px 16px var(--accent-primary-alpha);
-  transform: translateY(-1px);
+  filter: brightness(1.2);
+  box-shadow: 0 6px 22px var(--accent-primary-alpha);
+  transform: translateY(-2px);
 }
 .btn-ghost {
-  background: transparent;
+  background: rgba(16, 185, 129, 0.08);
   color: var(--accent-primary);
   border: 1px solid var(--border-primary);
+  backdrop-filter: blur(8px);
 }
 .btn-ghost:hover {
   background: var(--accent-glow);
   border-color: var(--accent-primary);
+  transform: translateY(-2px);
 }
 
 /* === GLASS CARDS === */
@@ -1192,7 +1195,14 @@ body {
   line-height: 1.6;
   margin-bottom: var(--space-lg);
 }
-.hero-actions { display: flex; gap: var(--space-md); }
+.hero-actions {
+  display: flex;
+  gap: var(--space-md);
+  margin-top: var(--space-md);
+  position: relative;
+  z-index: 5;
+  flex-wrap: wrap;
+}
 .hero-visual {
   position: relative;
   z-index: 1;

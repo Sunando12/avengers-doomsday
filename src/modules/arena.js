@@ -5,6 +5,7 @@
 
 import { playBlast, playShield, playSuccess, playAlert } from './audio.js';
 import { showToast } from './toast.js';
+import { animateBattleImpact, animateSimResults } from './gsap-animations.js';
 
 let heroesList = [];
 let fighter1 = null;
@@ -134,6 +135,8 @@ async function startBattleSimulation() {
   const startBtn = document.getElementById('btn-start-battle');
   if (startBtn) startBtn.disabled = true;
 
+  animateBattleImpact();
+
   const logEl = document.getElementById('arena-battle-log');
   if (logEl) {
     logEl.innerHTML = `<div class="log-entry system">⚔️ COMBAT PROTOCOL INITIATED: ${fighter1.name} VS ${fighter2.name}</div>`;
@@ -157,6 +160,7 @@ async function startBattleSimulation() {
     hp2 = Math.max(0, hp2 - dmg1);
 
     playBlast();
+    animateBattleImpact();
     addLog(`Round ${round}: ${fighter1.name} attacks ${fighter2.name} for ${dmg1} DMG! ${crit1 ? '💥 CRITICAL HIT!' : ''}`, crit1 ? 'critical' : 'f1');
     updateHpBars(hp1, hp2);
 
@@ -324,6 +328,7 @@ async function runMultiverseProbabilityScan() {
   }
 
   playSuccess();
+  animateSimResults();
   addLog(`🔮 Multiverse Simulation Complete: 10,000 timelines analyzed against Doctor Doom.`, 'winner');
   addLog(`📊 Coalition Win Rate: ${avengersRate}% | Doom Supremacy: ${doomRate}% | Collapsed Realities: ${cataclysmRate}%.`, 'f1');
   addLog(`💡 Winning Key: Wanda chaos hex + Strange mirror seal + Thor God-Blast overcharge.`, 'system');

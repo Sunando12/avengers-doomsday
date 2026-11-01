@@ -1,7 +1,9 @@
 /**
  * Modal Module
- * Opens/closes modals with dynamic content injection.
+ * Opens/closes modals with dynamic content injection and GSAP spring physics.
  */
+
+import { animateModalOpen, animateModalClose } from './gsap-animations.js';
 
 let currentCloseHandler = null;
 
@@ -19,22 +21,26 @@ export function openModal(html, onClose) {
   overlay.classList.remove('hidden');
   document.body.style.overflow = 'hidden';
   currentCloseHandler = onClose || null;
+
+  animateModalOpen();
 }
 
 /**
- * Close the global modal.
+ * Close the global modal with GSAP spring exit.
  */
 export function closeModal() {
   const overlay = document.getElementById('modal-overlay');
-  if (!overlay) return;
+  if (!overlay || overlay.classList.contains('hidden')) return;
 
-  overlay.classList.add('hidden');
-  document.body.style.overflow = '';
+  animateModalClose(() => {
+    overlay.classList.add('hidden');
+    document.body.style.overflow = '';
 
-  if (currentCloseHandler) {
-    currentCloseHandler();
-    currentCloseHandler = null;
-  }
+    if (currentCloseHandler) {
+      currentCloseHandler();
+      currentCloseHandler = null;
+    }
+  });
 }
 
 /**
